@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cn.nodemedia.qlive.utils.view.SizeChangeRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/size_change_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="cn.nodemedia.qlive.view.PushActivity">
+
+    <cn.nodemedia.NodeCameraView
+        android:id="@+id/push_surface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+    </cn.nodemedia.NodeCameraView>
+
+    <cn.nodemedia.qlive.utils.view.TitleView
+        android:id="@+id/title_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <FrameLayout
+        android:id="@+id/bottom_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true">
+
+        <cn.nodemedia.qlive.utils.view.BottomControlView
+            android:id="@+id/control_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <cn.nodemedia.qlive.utils.view.ChatView
+            android:id="@+id/chat_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/chat_list_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/bottom_view"
+        android:orientation="horizontal">
+
+        <cn.nodemedia.qlive.utils.view.ChatMsgListView
+            android:id="@+id/chat_list"
+            android:layout_width="0dp"
+            android:layout_height="180dp"
+            android:layout_weight="2" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="200dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <cn.nodemedia.qlive.utils.view.VipEnterView
+        android:id="@+id/vip_enter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/chat_list_view" />
+
+    <tyrantgit.widget.HeartLayout
+        android:id="@+id/heart_layout"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true" />
+
+    <cn.nodemedia.qlive.utils.view.DanmuView
+        android:id="@+id/danmu_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/vip_enter" />
+
+    <cn.nodemedia.qlive.utils.view.GiftRepeatView
+        android:id="@+id/gift_repeat_view"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_above="@id/chat_list_view" />
+
+    <cn.nodemedia.qlive.utils.view.GiftFullView
+        android:id="@+id/gift_full_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+<!--    <LinearLayout-->
+<!--        android:id="@+id/compView"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        >-->
+<!--        <ImageView-->
+<!--            android:id="@+id/push_back"-->
+<!--            style="@style/common_imageview"-->
+<!--            android:padding="@dimen/dp_12"-->
+<!--            app:srcCompat="@drawable/ic_back" />-->
+<!--        <ImageView-->
+<!--            android:id="@+id/push_switch"-->
+<!--            style="@style/common_imageview"-->
+<!--            android:layout_toRightOf="@id/push_back"-->
+<!--            android:padding="@dimen/dp_12"-->
+<!--            app:srcCompat="@drawable/ic_camera_switch"/>-->
+<!--        <ImageView-->
+<!--            android:id="@+id/push_flash"-->
+<!--            style="@style/common_imageview"-->
+<!--            android:layout_toRightOf="@id/push_switch"-->
+<!--            android:padding="@dimen/dp_12"-->
+<!--            app:srcCompat="@drawable/ic_flash_off"/>-->
+<!--    </LinearLayout>-->
+
+</cn.nodemedia.qlive.utils.view.SizeChangeRelativeLayout>
