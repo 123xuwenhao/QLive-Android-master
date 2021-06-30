@@ -12,6 +12,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.tencent.imsdk.v2.V2TIMSDKConfig;
+import com.tencent.qcloud.tim.uikit.TUIKit;
+import com.tencent.qcloud.tim.uikit.config.CustomFaceConfig;
+import com.tencent.qcloud.tim.uikit.config.GeneralConfig;
+import com.tencent.qcloud.tim.uikit.config.TUIKitConfigs;
+import com.tencent.qcloud.tim.uikit.modules.conversation.ConversationLayout;
+
 import cn.nodemedia.qlive.R;
 
 /**
@@ -19,6 +26,7 @@ import cn.nodemedia.qlive.R;
  */
 
 public class AboutFragment extends Fragment implements View.OnClickListener {
+    public static final int SDKAPPID = 1400514968; // 您的 SDKAppID
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,42 +42,21 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        TextView w = view.findViewById(R.id.website);
-        TextView a = view.findViewById(R.id.android_sdk);
-        TextView i = view.findViewById(R.id.ios_sdk);
-        TextView s = view.findViewById(R.id.node_media_server);
-
-        w.setOnClickListener(this);
-        a.setOnClickListener(this);
-        i.setOnClickListener(this);
-        s.setOnClickListener(this);
+        //         配置 Config，请按需配置
+        TUIKitConfigs configs = TUIKit.getConfigs();
+        configs.setSdkConfig(new V2TIMSDKConfig());
+        configs.setCustomFaceConfig(new CustomFaceConfig());
+        configs.setGeneralConfig(new GeneralConfig());
+        TUIKit.init(getContext(), SDKAPPID, configs);
+//        // 从布局文件中获取会话列表面板
+        ConversationLayout conversationLayout = getActivity().findViewById(R.id.conversation_layout);
+//        // 初始化聊天面板
+        conversationLayout.initDefault();
 
     }
 
     @Override
     public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.website: {
-                Uri uri = Uri.parse("http://www.nodemedia.cn");
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
-            }
 
-            break;
-            case R.id.android_sdk: {
-                Uri uri = Uri.parse("https://github.com/NodeMedia/NodeMediaClient-Android");
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
-            }
-            break;
-            case R.id.ios_sdk: {
-                Uri uri = Uri.parse("https://github.com/NodeMedia/NodeMediaClient-iOS");
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
-            }
-            break;
-            case R.id.node_media_server: {
-                Uri uri = Uri.parse("https://github.com/illuspas/Node-Media-Server");
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
-            }
-            break;
-        }
     }
 }

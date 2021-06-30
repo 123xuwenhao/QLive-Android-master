@@ -1,33 +1,34 @@
 package cn.nodemedia.qlive.view.fragment;
 
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 
+
+import android.app.Fragment;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.BaseAdapter;
+
 import android.widget.Button;
-import android.widget.GridView;
+
 import android.widget.Toast;
 
-import java.util.ArrayList;
+
 
 
 import cn.nodemedia.qlive.MyApplication;
 import cn.nodemedia.qlive.R;
-import cn.nodemedia.qlive.adapter.MyAdapter;
-import cn.nodemedia.qlive.entity.LiveView;
+
+import cn.nodemedia.qlive.entity.RoomInfo;
 import cn.nodemedia.qlive.entity.UserInfo;
 import cn.nodemedia.qlive.utils.BaseRequest;
+import cn.nodemedia.qlive.view.MyRequest.GetLiveRoomRequest;
 import cn.nodemedia.qlive.view.MyRequest.GetSingleUserInfoRequest;
 import cn.nodemedia.qlive.view.PlayActivity;
 
 
-public class PlayFragment extends Fragment{
+public class PlayFragment extends Fragment {
 
     private Fragment mContext;
 
@@ -59,19 +60,44 @@ public class PlayFragment extends Fragment{
         });
         getSingleUserInfoRequest.request(param);
         Intent intent=new Intent(getActivity(), PlayActivity.class);
+        //用户Id
         intent.putExtra("userId",1235);
+        //主播id
         intent.putExtra("hostId",123);
+        //用户昵称
         intent.putExtra("userName","123");
+        //用户头像
         intent.putExtra("userAvatar","http://qsz313e9w.hn-bkt.clouddn.com/1621552044871_avatar_crop.jpg");
+        //房间Id（yb+主播id  组成）
         intent.putExtra("streamId","yb123");
         Button play_btn=view.findViewById(R.id.play_btn);
         play_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-               startActivity(intent);
+                checkLiveRoom(intent);
             }
         });
         return view;
+    }
+
+    private void checkLiveRoom(Intent intent) {
+        GetLiveRoomRequest getLiveRoomRequest=new GetLiveRoomRequest();
+        GetLiveRoomRequest.getLiveRoomParam param=new GetLiveRoomRequest.getLiveRoomParam();
+        param.userId="123";
+        getLiveRoomRequest.setOnResultListener(new BaseRequest.OnResultListener<RoomInfo>() {
+            @Override
+            public void onFail(int code, String msg) {
+                Toast.makeText(getActivity(),msg,Toast.LENGTH_LONG).show();
+
+            }
+
+            @Override
+            public void onSuccess(RoomInfo room) {
+                startActivity(intent);
+
+            }
+        });
+        getLiveRoomRequest.request(param);
     }
 
     @Override

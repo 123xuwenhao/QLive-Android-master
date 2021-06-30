@@ -1,6 +1,5 @@
 package cn.nodemedia.qlive.view;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
@@ -17,7 +16,9 @@ import com.tencent.imsdk.v2.V2TIMManager;
 import com.tencent.imsdk.v2.V2TIMMessage;
 import com.tencent.imsdk.v2.V2TIMSimpleMsgListener;
 import com.tencent.imsdk.v2.V2TIMValueCallback;
-import com.tencent.openqq.protocol.imsdk.msg;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -131,7 +132,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
             @Override
             public void onError(int code, String desc) {
                 Toast.makeText(PlayActivity.this,"直播已结束",Toast.LENGTH_SHORT).show();
-                quitRoom();
+                finish();
             }
 
             @Override
@@ -191,7 +192,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
                     //用户离开消息
                     if (hostId==userProfile.getUser_id()) {
                         //主播退出直播，
-                        quitRoom();
+                        finish();
                     } else {
                         //观众退出直播
                         titleView.removeWatcher(userProfile);
@@ -324,11 +325,6 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
 
     }
 
-
-
-
-
-
     private void assignIMViews() {
 
         mSizeChangeLayout = findViewById(R.id.size_change_layout);
@@ -361,7 +357,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
             @Override
             public void onCloseClick() {
                 // 点击了关闭按钮，关闭直播
-                quitRoom();
+                finish();
             }
 
             @Override
@@ -478,48 +474,71 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
 
     private void quitRoom() {
 
-        V2TIMManager.getInstance().quitGroup(streamId, new V2TIMCallback() {
+        //发送退出消息给服务器
+
+        ILVCustomCmd customCmd = new ILVCustomCmd();
+        customCmd.setType(ILVText.ILVTextType.eGroupMsg);
+        customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_LEAVE);
+        customCmd.setStreamId(streamId);
+        customCmd.setUserProfile(appUserProfile);
+        byte[] customData=GsonInstance.toJson(customCmd).getBytes();
+        V2TIMManager.getInstance().sendGroupCustomMessage(customData, streamId, V2TIMMessage.V2TIM_PRIORITY_NORMAL, new V2TIMValueCallback<V2TIMMessage>() {
             @Override
             public void onError(int code, String desc) {
-                Toast.makeText(PlayActivity.this, "错误代码：" + code + ",退出房间失败：" + desc, Toast.LENGTH_SHORT).show();
+                Log.e("sendGroupCustomMessage","观众发出离开消息失败或者主播已经关闭直播间"+code+","+desc,null);
             }
 
             @Override
-            public void onSuccess() {
-
-                //发送退出消息给服务器
-
-                ILVCustomCmd customCmd = new ILVCustomCmd();
-                customCmd.setType(ILVText.ILVTextType.eGroupMsg);
-                customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_LEAVE);
-                customCmd.setStreamId(streamId);
-                customCmd.setUserProfile(appUserProfile);
-                byte[] customData=GsonInstance.toJson(customCmd).getBytes();
-                V2TIMManager.getInstance().sendGroupCustomMessage(customData, streamId, V2TIMMessage.V2TIM_PRIORITY_NORMAL, new V2TIMValueCallback<V2TIMMessage>() {
+            public void onSuccess(V2TIMMessage v2TIMMessage) {
+                Log.e("sendGroupCustomMessage","观众发出离开消息成功",null);
+                V2TIMManager.getInstance().quitGroup(streamId, new V2TIMCallback() {
                     @Override
                     public void onError(int code, String desc) {
-
+                        Toast.makeText(PlayActivity.this, "错误代码：" + code + ",退出房间失败或者主播已经关闭直播间：" + desc, Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
-                    public void onSuccess(V2TIMMessage v2TIMMessage) {
+                    public void onSuccess() {
+
+                        if(V2TIMManager.getInstance().getLoginStatus()==V2TIMManager.V2TIM_STATUS_LOGINED) {
+                            logout();
+                        }
 
                     }
                 });
-
             }
         });
+
         QuitRoomRequest request = new QuitRoomRequest();
         QuitRoomRequest.getRoomParam param = new QuitRoomRequest.getRoomParam();
         param.userId = userId + "";
         param.streamId = streamId;
-        request.request(param);
+        request.setOnResultListener(new BaseRequest.OnResultListener() {
+            @Override
+            public void onFail(int code, String msg) {
+                Log.e("QuitRoomRequest","观众信息删除失败"+code+","+msg,null);
+            }
 
-        logout();
+            @Override
+            public void onSuccess(Object object) {
+                Log.e("QuitRoomRequest","观众信息删除成功",null);
+            }
+        });
+        request.request(param);
     }
 
     private void logout() {
-        finish();
+        V2TIMManager.getInstance().logout(new V2TIMCallback() {
+            @Override
+            public void onError(int code, String desc) {
+                Toast.makeText(PlayActivity.this, "互动系统关闭失败!" + code + desc, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onSuccess() {
+                Toast.makeText(PlayActivity.this, "互动系统已经登出！", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
 
@@ -569,6 +588,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        quitRoom();
         heartTimer.cancel();
         heartBeatTimer.cancel();
 

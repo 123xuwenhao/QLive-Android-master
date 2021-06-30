@@ -297,7 +297,8 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
             @Override
             public void onCloseClick() {
                 // 点击了关闭按钮，关闭直播
-                quitLive();
+                mPresenter.pushStop();
+                finish();
             }
 
             @Override
@@ -378,52 +379,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         giftFullView = findViewById(R.id.gift_full_view);
     }
 
-    private void quitLive() {
 
-        ILVCustomCmd customCmd = new ILVCustomCmd();
-        customCmd.setType(ILVText.ILVTextType.eGroupMsg);
-        customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_LEAVE);
-        customCmd.setStreamId(streamId);
-        customCmd.setUserProfile(appUserProfile);
-
-        byte[] customData = GsonInstance.toJson(customCmd).getBytes();
-
-        //发送退出消息给服务器
-        QuitRoomRequest request = new QuitRoomRequest();
-        QuitRoomRequest.getRoomParam param = new QuitRoomRequest.getRoomParam();
-        param.userId = userId + "";
-        param.streamId = streamId;
-        request.setOnResultListener(new BaseRequest.OnResultListener<RoomInfo>() {
-            @Override
-            public void onFail(int code, String msg) {
-                Log.e("abc","请求失败"+msg,null);
-            }
-
-            @Override
-            public void onSuccess(RoomInfo roomInfo) {
-                Log.e("abc","请求成功",null);
-
-            }
-        });
-        request.request(param);
-        V2TIMManager.getInstance().sendGroupCustomMessage(customData, streamId, V2TIMMessage.V2TIM_PRIORITY_NORMAL, new V2TIMValueCallback<V2TIMMessage>() {
-            @Override
-            public void onError(int code, String desc) {
-                Toast.makeText(PushActivity.this,"发送失败:"+desc,Toast.LENGTH_SHORT).show();
-
-            }
-
-            @Override
-            public void onSuccess(V2TIMMessage v2TIMMessage) {
-                Toast.makeText(PushActivity.this, "发送成功", Toast.LENGTH_SHORT).show();
-                logout();
-
-            }
-        });
-
-        mPresenter.pushStop();
-        finish();
-    }
 
     /**
      * 实例化视图控件
@@ -543,12 +499,60 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
 
 
     }
+    private void quitLive() {
+
+        ILVCustomCmd customCmd = new ILVCustomCmd();
+        customCmd.setType(ILVText.ILVTextType.eGroupMsg);
+        customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_LEAVE);
+        customCmd.setStreamId(streamId);
+        customCmd.setUserProfile(appUserProfile);
+
+        byte[] customData = GsonInstance.toJson(customCmd).getBytes();
+
+        //发送退出消息给服务器
+        QuitRoomRequest request = new QuitRoomRequest();
+        QuitRoomRequest.getRoomParam param = new QuitRoomRequest.getRoomParam();
+        param.userId = userId + "";
+        param.streamId = streamId;
+        request.setOnResultListener(new BaseRequest.OnResultListener<RoomInfo>() {
+            @Override
+            public void onFail(int code, String msg) {
+                Log.e("QuitRoomRequest","请求失败"+msg,null);
+            }
+
+            @Override
+            public void onSuccess(RoomInfo roomInfo) {
+                Log.e("QuitRoomRequest","请求成功",null);
+
+            }
+        });
+        request.request(param);
+        V2TIMManager.getInstance().sendGroupCustomMessage(customData, streamId, V2TIMMessage.V2TIM_PRIORITY_NORMAL, new V2TIMValueCallback<V2TIMMessage>() {
+            @Override
+            public void onError(int code, String desc) {
+                Toast.makeText(PushActivity.this,"发送失败:"+desc,Toast.LENGTH_SHORT).show();
+
+            }
+
+            @Override
+            public void onSuccess(V2TIMMessage v2TIMMessage) {
+                Toast.makeText(PushActivity.this, "发送成功", Toast.LENGTH_SHORT).show();
+                if(V2TIMManager.getInstance().getLoginStatus()==V2TIMManager.V2TIM_STATUS_LOGINED) {
+                    logout();
+                }
+
+            }
+        });
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        quitLive();
         heartTimer.cancel();
         heartBeatTimer.cancel();
+
+
     }
 
     @Override
