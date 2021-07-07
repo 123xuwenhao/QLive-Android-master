@@ -136,7 +136,7 @@ public class ChatMsgListView extends RelativeLayout {
 
         @Override
         public View getView(int i, View view, ViewGroup viewGroup) {
-            ChatMsgHolder holder = null;
+            ChatMsgHolder holder;
             if (view == null) {
                 view = LayoutInflater.from(getContext()).inflate(R.layout.view_chat_msg_list_item, null);
                 holder = new ChatMsgHolder(view);

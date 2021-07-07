@@ -10,21 +10,34 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.qiniu.android.http.ResponseInfo;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 
+import cn.nodemedia.qlive.contract.APIPost;
+import cn.nodemedia.qlive.entity.Result;
+import cn.nodemedia.qlive.utils.view.RetrofitManager;
 import cn.nodemedia.qlive.view.PushActivity;
 import cn.nodemedia.qlive.widget.PicChooseDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 public class PicChooseHelper {
 
@@ -36,6 +49,8 @@ public class PicChooseHelper {
     private static final int WRITE_PERMISSION_REQ_CODE = 4;
     private static final String ALBUM = "album";
     private static final String CAMERA = "camera";
+    private static final String urlPost = "http://47.99.171.180:8082";
+    private static final String urlGet = "http://47.99.171.180:8082/streaming/";
     private Activity mActivity;
     private Uri mCameraFileUri;
     private Uri cropUri;
@@ -74,10 +89,10 @@ public class PicChooseHelper {
         mCameraFileUri = getCropUri();
         Intent intentCamera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (mActivity == null) {
+            assert false;
             mActivity.startActivityForResult(intentCamera, FROM_CAMERA);
         }
     }
-
 
 
     private void choosePicFromAlbum() {
@@ -86,7 +101,7 @@ public class PicChooseHelper {
         mActivity.startActivityForResult(intent, FROM_ALBUM);
     }
 
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, Intent data) throws IOException {
         if (requestCode == FROM_ALBUM) {
             if (resultCode == Activity.RESULT_OK) {
                 Uri uri = data.getData();
@@ -95,9 +110,12 @@ public class PicChooseHelper {
             }
         } else if (requestCode == FROM_CROP) {
             if (resultCode == Activity.RESULT_OK) {
+                Log.e("cropUri", cropUri.getEncodedPath());
+                Log.e("cropUri", cropUri.getPath());
 
+
+//                uploadToAliy(cropUri.getPath());
                 uploadTo7niu(cropUri.getPath());
-
             }
         } else if (requestCode == FROM_CAMERA) {
             //从相机选择返回
@@ -131,6 +149,46 @@ public class PicChooseHelper {
         });
     }
 
+
+//    private void uploadToAliy(String path) throws IOException {
+//
+//        File file = new File(path);
+//        InputStream fileIn = new FileInputStream(file);
+//        byte[] image = new byte[(int) file.length()];
+//        fileIn.read(image);
+//        Retrofit retrofit = RetrofitManager.getInstance(urlPost);
+//        APIPost api = retrofit.create(APIPost.class);
+//        Call<Result> call = api.request(image, "images/" + file.getName());//ask在前面赋予了各个字段的数据，在接口api中转成了json格式的数据，发送请求
+//        call.enqueue(new Callback<Result>() {
+//            @RequiresApi(api = Build.VERSION_CODES.N)
+//            @Override
+//            public void onResponse(Call<Result> call, Response<Result> response) {
+////                接受到的机器人回复的数据
+//                String actionStatus = response.body().getStatus();
+//                Log.e("status", actionStatus, null);
+//                if (actionStatus.equals("true")) {
+////                    上传成功
+//                    if (onChooseListener != null) {
+//                        onChooseListener.onSuccess(urlGet+response.body().getData());
+//                    }
+//                } else {
+//
+//                    if (onChooseListener != null) {
+//                        onChooseListener.onFail();
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            public void onFailure(Call<Result> call, Throwable t) {
+//
+//                Log.e("status", t.getMessage(), null);
+//            }
+//        });
+//
+//
+//    }
+
     public interface onChooseListener {
         void onSuccess(String url);
 
@@ -143,6 +201,7 @@ public class PicChooseHelper {
     public void setOnChooseListener(onChooseListener l) {
         onChooseListener = l;
     }
+
 
     private void startCrop(Uri uri, String type) {
 
@@ -174,7 +233,7 @@ public class PicChooseHelper {
 
     private Uri getCropUri() {
         String fileName = System.currentTimeMillis() + "_avatar_crop.jpg";
-        String dirPath = mActivity.getExternalFilesDir(null) + "/"+mActivity.getApplication().getPackageName()+"/";
+        String dirPath = mActivity.getExternalFilesDir(null) + "/" + mActivity.getApplication().getPackageName() + "/";
         File dir = new File(dirPath);
         if (!dir.exists()) {
             dir.mkdirs();

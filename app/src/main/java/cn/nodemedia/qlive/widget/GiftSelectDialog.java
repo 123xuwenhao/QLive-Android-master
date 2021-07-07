@@ -1,5 +1,6 @@
 package cn.nodemedia.qlive.widget;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Handler;
 import android.os.Message;
@@ -127,6 +128,7 @@ public class GiftSelectDialog extends TransParentNoDimDialog {
     }
 
 
+    @SuppressLint("HandlerLeak")
     private Handler sendRepeatTimer = new Handler() {
         @Override
         public void handleMessage(Message msg) {

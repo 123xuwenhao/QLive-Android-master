@@ -13,11 +13,11 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.tencent.imsdk.v2.V2TIMSDKConfig;
-import com.tencent.qcloud.tim.uikit.TUIKit;
-import com.tencent.qcloud.tim.uikit.config.CustomFaceConfig;
-import com.tencent.qcloud.tim.uikit.config.GeneralConfig;
-import com.tencent.qcloud.tim.uikit.config.TUIKitConfigs;
-import com.tencent.qcloud.tim.uikit.modules.conversation.ConversationLayout;
+//import com.tencent.qcloud.tim.uikit.TUIKit;
+//import com.tencent.qcloud.tim.uikit.config.CustomFaceConfig;
+//import com.tencent.qcloud.tim.uikit.config.GeneralConfig;
+//import com.tencent.qcloud.tim.uikit.config.TUIKitConfigs;
+//import com.tencent.qcloud.tim.uikit.modules.conversation.ConversationLayout;
 
 import cn.nodemedia.qlive.R;
 
@@ -42,16 +42,16 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        //         配置 Config，请按需配置
-        TUIKitConfigs configs = TUIKit.getConfigs();
-        configs.setSdkConfig(new V2TIMSDKConfig());
-        configs.setCustomFaceConfig(new CustomFaceConfig());
-        configs.setGeneralConfig(new GeneralConfig());
-        TUIKit.init(getContext(), SDKAPPID, configs);
-//        // 从布局文件中获取会话列表面板
-        ConversationLayout conversationLayout = getActivity().findViewById(R.id.conversation_layout);
-//        // 初始化聊天面板
-        conversationLayout.initDefault();
+//        //         配置 Config，请按需配置
+//        TUIKitConfigs configs = TUIKit.getConfigs();
+//        configs.setSdkConfig(new V2TIMSDKConfig());
+//        configs.setCustomFaceConfig(new CustomFaceConfig());
+//        configs.setGeneralConfig(new GeneralConfig());
+//        TUIKit.init(getContext(), SDKAPPID, configs);
+////        // 从布局文件中获取会话列表面板
+//        ConversationLayout conversationLayout = getActivity().findViewById(R.id.conversation_layout);
+////        // 初始化聊天面板
+//        conversationLayout.initDefault();
 
     }
 

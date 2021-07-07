@@ -13,6 +13,7 @@ import com.tencent.openqq.protocol.imsdk.msg;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import cn.nodemedia.qlive.entity.ResponseObj;
 import okhttp3.Call;
@@ -76,15 +77,15 @@ public abstract class BaseRequest {
                 .build();
         okClient.newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 onFail(e);
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 //不是UI线程
                 if (response.isSuccessful()) {
-                    onResponseSuccess(response.body().string());
+                    onResponseSuccess(Objects.requireNonNull(response.body()).string());
                 } else {
                     onResponseFail(response.code());
                 }

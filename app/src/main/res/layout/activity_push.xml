@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <cn.nodemedia.qlive.utils.view.SizeChangeRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/size_change_layout"
     android:layout_width="match_parent"
@@ -17,6 +16,27 @@
         android:id="@+id/title_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
+    <FrameLayout
+        android:id="@+id/goods_list_view"
+        android:layout_width="@dimen/dp_60"
+        android:layout_height="@dimen/dp_60"
+        android:layout_above="@id/bottom_view"
+        android:layout_alignParentEnd="true">
+        <TextView
+            android:id="@+id/goods_num"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="@dimen/dp_35"
+            android:gravity="center_horizontal"
+            android:textColor="@color/bg_white"/>
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/shangpin"
+            android:contentDescription="@string/shop_list" />
+
+    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/bottom_view"
@@ -64,7 +84,7 @@
         android:id="@+id/heart_layout"
         android:layout_width="100dp"
         android:layout_height="match_parent"
-        android:layout_alignParentRight="true" />
+        android:layout_alignParentEnd="true" />
 
     <cn.nodemedia.qlive.utils.view.DanmuView
         android:id="@+id/danmu_view"
@@ -83,28 +103,22 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-<!--    <LinearLayout-->
-<!--        android:id="@+id/compView"-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        >-->
-<!--        <ImageView-->
-<!--            android:id="@+id/push_back"-->
-<!--            style="@style/common_imageview"-->
-<!--            android:padding="@dimen/dp_12"-->
-<!--            app:srcCompat="@drawable/ic_back" />-->
-<!--        <ImageView-->
-<!--            android:id="@+id/push_switch"-->
-<!--            style="@style/common_imageview"-->
-<!--            android:layout_toRightOf="@id/push_back"-->
-<!--            android:padding="@dimen/dp_12"-->
-<!--            app:srcCompat="@drawable/ic_camera_switch"/>-->
-<!--        <ImageView-->
-<!--            android:id="@+id/push_flash"-->
-<!--            style="@style/common_imageview"-->
-<!--            android:layout_toRightOf="@id/push_switch"-->
-<!--            android:padding="@dimen/dp_12"-->
-<!--            app:srcCompat="@drawable/ic_flash_off"/>-->
-<!--    </LinearLayout>-->
+    <cn.nodemedia.qlive.utils.view.GoodView
+        android:id="@+id/goods_view_self"
+        android:layout_width="@dimen/dp_200"
+        android:layout_height="@dimen/dp_110"
+        android:layout_above="@id/bottom_view"
+        android:layout_marginBottom="20dp"/>
+
+    <cn.nodemedia.qlive.utils.view.GoodsListView
+        android:id="@+id/goods_view_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:visibility="invisible" />
+
+
+
+
 
 </cn.nodemedia.qlive.utils.view.SizeChangeRelativeLayout>

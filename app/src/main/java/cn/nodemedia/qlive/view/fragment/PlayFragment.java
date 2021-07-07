@@ -1,25 +1,20 @@
 package cn.nodemedia.qlive.view.fragment;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
-
-import android.app.Fragment;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
 import android.widget.Button;
-
 import android.widget.Toast;
-
-
-
 
 import cn.nodemedia.qlive.MyApplication;
 import cn.nodemedia.qlive.R;
-
 import cn.nodemedia.qlive.entity.RoomInfo;
 import cn.nodemedia.qlive.entity.UserInfo;
 import cn.nodemedia.qlive.utils.BaseRequest;
@@ -31,6 +26,7 @@ import cn.nodemedia.qlive.view.PlayActivity;
 public class PlayFragment extends Fragment {
 
     private Fragment mContext;
+   private static final String  YB ="yb";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -42,7 +38,7 @@ public class PlayFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
 
-        View view = inflater.inflate(R.layout.pref_play, null);
+        @SuppressLint("InflateParams") View view = inflater.inflate(R.layout.pref_play, null);
         GetSingleUserInfoRequest getSingleUserInfoRequest=new GetSingleUserInfoRequest();
         GetSingleUserInfoRequest.getUserParam param=new GetSingleUserInfoRequest.getUserParam();
         param.userId="1235";
@@ -83,7 +79,7 @@ public class PlayFragment extends Fragment {
     private void checkLiveRoom(Intent intent) {
         GetLiveRoomRequest getLiveRoomRequest=new GetLiveRoomRequest();
         GetLiveRoomRequest.getLiveRoomParam param=new GetLiveRoomRequest.getLiveRoomParam();
-        param.userId="123";
+        param.streamId=YB+"123";
         getLiveRoomRequest.setOnResultListener(new BaseRequest.OnResultListener<RoomInfo>() {
             @Override
             public void onFail(int code, String msg) {
@@ -101,7 +97,7 @@ public class PlayFragment extends Fragment {
     }
 
     @Override
-    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
     }
 

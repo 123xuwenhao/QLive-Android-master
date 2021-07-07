@@ -1,5 +1,6 @@
 package cn.nodemedia.qlive.utils.view;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.text.TextUtils;
@@ -12,6 +13,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,9 +23,11 @@ import java.util.List;
 import java.util.Map;
 
 import cn.nodemedia.qlive.R;
+import cn.nodemedia.qlive.entity.RoomInfo;
 import cn.nodemedia.qlive.entity.UserInfo;
 import cn.nodemedia.qlive.utils.BaseRequest;
 import cn.nodemedia.qlive.utils.ImgUtils;
+import cn.nodemedia.qlive.view.MyRequest.GetLiveRoomRequest;
 import cn.nodemedia.qlive.view.MyRequest.GetUserInfoRequest;
 import cn.nodemedia.qlive.widget.UserInfoDialog;
 
@@ -56,9 +60,28 @@ public class TitleView extends LinearLayout {
     private void init() {
         setOrientation(LinearLayout.HORIZONTAL);
         LayoutInflater.from(getContext()).inflate(R.layout.view_title, this, true);
-
         findAllViews();
+        initWatcherNum();
     }
+    private void initWatcherNum() {
+        GetLiveRoomRequest getLiveRoomRequest = new GetLiveRoomRequest();
+        GetLiveRoomRequest.getLiveRoomParam liveRoomParam = new GetLiveRoomRequest.getLiveRoomParam();
+        liveRoomParam.streamId = hostId;
+        getLiveRoomRequest.setOnResultListener(new BaseRequest.OnResultListener<RoomInfo>() {
+            @Override
+            public void onFail(int code, String msg) {
+                Toast.makeText(TitleView.this.getContext(), "请求房间信息失败:" + msg, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onSuccess(RoomInfo roomInfo) {
+                watcherNum = roomInfo.watcher_nums < 0 ? 0 : roomInfo.watcher_nums;
+            }
+        });
+        getLiveRoomRequest.request(liveRoomParam);
+    }
+
+
 
     private void findAllViews() {
         hostAvatarImgView = findViewById(R.id.host_avatar);
@@ -77,6 +100,8 @@ public class TitleView extends LinearLayout {
         watcherAdapter = new WatcherAdapter(getContext());
         watcherListView.setAdapter(watcherAdapter);
     }
+
+
 
     private void showUserInfoDialog(String senderId) {
         List<String> ids = new ArrayList<String>();
@@ -116,6 +141,7 @@ public class TitleView extends LinearLayout {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     public void addWatcher(UserInfo userProfile) {
         if (userProfile != null) {
             watcherAdapter.addWatcher(userProfile);
@@ -124,6 +150,7 @@ public class TitleView extends LinearLayout {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     public void addWatchers(List<UserInfo> userProfileList){
         if(userProfileList != null){
             watcherAdapter.addWatchers(userProfileList);
@@ -136,7 +163,7 @@ public class TitleView extends LinearLayout {
         if (userProfile != null) {
             watcherAdapter.removeWatcher(userProfile);
             watcherNum--;
-            watchersNumView.setText("观众:" + watcherNum);
+            watchersNumView.setText("观众:" +  (Math.max(watcherNum, 0)));
         }
     }
 
@@ -194,16 +221,16 @@ public class TitleView extends LinearLayout {
             }
         }
 
+        @NonNull
         @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
 
             View itemView = LayoutInflater.from(mContext).inflate(R.layout.adapter_watcher, parent, false);
-            WatcherHolder holder = new WatcherHolder(itemView);
-            return holder;
+            return new WatcherHolder(itemView);
         }
 
         @Override
-        public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             if (holder instanceof WatcherHolder) {
                 ((WatcherHolder) holder).bindData(watcherList.get(position));
             }

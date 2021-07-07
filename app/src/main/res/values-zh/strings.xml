@@ -235,4 +235,5 @@
     </string-array>
     <string name="play_cryptokey">视频解密key</string>
     <string name="push_cryptokey">视频加密key</string>
+    <string name="goods_title">主播正在讲解</string>
 </resources>

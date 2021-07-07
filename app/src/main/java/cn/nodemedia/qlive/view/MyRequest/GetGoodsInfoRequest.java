@@ -2,25 +2,24 @@ package cn.nodemedia.qlive.view.MyRequest;
 
 import java.io.IOException;
 
-import cn.nodemedia.qlive.entity.GetLiveRoomResponseObj;
-import cn.nodemedia.qlive.entity.GetUserInfoResponseObj;
+import cn.nodemedia.qlive.entity.GetGoodsInfoResponseObj;
 import cn.nodemedia.qlive.entity.ResponseObj;
 import cn.nodemedia.qlive.utils.BaseRequest;
 
-public class GetLiveRoomRequest extends BaseRequest {
-    public static final String host = "http://47.99.171.180:8080/zhibo/servlet/RoomServlet?action=getLiveRoom&";
-    private static final String RequestParamKey_StreamId = "streamId";
+public class GetGoodsInfoRequest extends BaseRequest {
+    public static final String host = "http://47.99.171.180:8080/zhibo/servlet/RoomServlet?action=getGoods&";
+    private static final String RequestParamKey_GoodsIdList = "goodsIdList";
 
-    public static class getLiveRoomParam {
-        public String  streamId;
+    public static class getGoodsParam {
+        public String  goodsIdList;
 
         @Override
         public String toString() {
-            return RequestParamKey_StreamId + "=" + streamId;
+            return RequestParamKey_GoodsIdList + "=" + goodsIdList;
         }
     }
 
-    public void request(getLiveRoomParam param) {
+    public void request(getGoodsParam param) {
         String url = host + param.toString();
         request(url);
     }
@@ -39,7 +38,7 @@ public class GetLiveRoomRequest extends BaseRequest {
 
     @Override
     protected void onResponseSuccess(String body) {
-        GetLiveRoomResponseObj responseObject = gson.fromJson(body, GetLiveRoomResponseObj.class);
+        GetGoodsInfoResponseObj responseObject = gson.fromJson(body, GetGoodsInfoResponseObj.class);
         if (responseObject == null) {
             sendFailMsg(-101, "数据格式错误");
             return;

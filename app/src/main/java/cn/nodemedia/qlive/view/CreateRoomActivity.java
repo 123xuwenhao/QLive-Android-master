@@ -4,10 +4,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
@@ -21,29 +21,20 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-import com.tencent.imsdk.v2.V2TIMCallback;
-import com.tencent.imsdk.v2.V2TIMManager;
-import com.tencent.imsdk.v2.V2TIMValueCallback;
+import java.io.IOException;
+import java.util.ArrayList;
 
-
-import java.util.TimerTask;
-
-import cn.nodemedia.qlive.MyApplication;
 import cn.nodemedia.qlive.R;
 import cn.nodemedia.qlive.entity.RoomInfo;
-import cn.nodemedia.qlive.entity.UserInfo;
 import cn.nodemedia.qlive.utils.BaseRequest;
 
 import cn.nodemedia.qlive.utils.DialogUtil;
-import cn.nodemedia.qlive.utils.GenerateTestUserSig;
 import cn.nodemedia.qlive.utils.ImgUtils;
 import cn.nodemedia.qlive.utils.PicChooseHelper;
 
 import cn.nodemedia.qlive.utils.TCConstants;
 import cn.nodemedia.qlive.utils.TCUtils;
 import cn.nodemedia.qlive.view.MyRequest.CreateRoomRequest;
-import cn.nodemedia.qlive.view.MyRequest.GetSingleUserInfoRequest;
-import cn.nodemedia.qlive.view.MyRequest.HeartBeatRequest;
 
 
 public class CreateRoomActivity extends AppCompatActivity implements View.OnClickListener {
@@ -56,7 +47,10 @@ public class CreateRoomActivity extends AppCompatActivity implements View.OnClic
     Intent intentIn, intentOut;
     int userId;
     String userName,userAvatar;
+    ArrayList<Integer> goods;
 
+
+    @SuppressLint("CommitPrefEdits")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,11 +68,7 @@ public class CreateRoomActivity extends AppCompatActivity implements View.OnClic
 
     }
 
-    private void initValues() {
-        userId=intentIn.getIntExtra("userId",0);
-        userName=intentIn.getStringExtra("userName");
-        userAvatar=intentIn.getStringExtra("userAvatar");
-    }
+
 
     private void findAllViews() {
         mPushBtn = findViewById(R.id.push_button);
@@ -90,6 +80,14 @@ public class CreateRoomActivity extends AppCompatActivity implements View.OnClic
         mTitleEt = findViewById(R.id.title);
     }
 
+    private void initValues() {
+        userId=intentIn.getIntExtra("userId",0);
+        userName=intentIn.getStringExtra("userName");
+        userAvatar=intentIn.getStringExtra("userAvatar");
+        goods=intentIn.getIntegerArrayListExtra("selectedGoods");
+    }
+
+    @SuppressLint("NonConstantResourceId")
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -125,6 +123,7 @@ public class CreateRoomActivity extends AppCompatActivity implements View.OnClic
         param.userId = userId;
         param.StreamTitle =mTitleEt.getText().toString();
         param.StreamCover = coverUrl;
+        param.GoodsSelected=goods.toString();
         request.setOnResultListener(new BaseRequest.OnResultListener<RoomInfo>() {
             @Override
             public void onFail(int code, String msg) {
@@ -137,6 +136,7 @@ public class CreateRoomActivity extends AppCompatActivity implements View.OnClic
                 editorWrite.putString("streamId", "yb"+data.user_id);
                 editorWrite.apply();
                 intentOut=new Intent(getApplication(),PushActivity.class);
+                intentOut.putIntegerArrayListExtra("selectedGoods",goods);
                 startActivity(intentOut);
                 finish();
 
@@ -176,7 +176,11 @@ public class CreateRoomActivity extends AppCompatActivity implements View.OnClic
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (picChooseHelper != null) {
-            picChooseHelper.onActivityResult(requestCode, resultCode, data);
+            try {
+                picChooseHelper.onActivityResult(requestCode, resultCode, data);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         } else {
             super.onActivityResult(requestCode, resultCode, data);
         }

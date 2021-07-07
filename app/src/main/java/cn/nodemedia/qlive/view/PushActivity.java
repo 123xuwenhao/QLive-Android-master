@@ -1,9 +1,6 @@
 package cn.nodemedia.qlive.view;
 
-import android.animation.Animator;
-import android.animation.ObjectAnimator;
-import android.app.Activity;
-import android.app.Application;
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -15,21 +12,20 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.animation.OvershootInterpolator;
-import android.widget.ImageView;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
-import com.tencent.imsdk.TIMMessage;
-import com.tencent.imsdk.v2.V2TIMAdvancedMsgListener;
 import com.tencent.imsdk.v2.V2TIMCallback;
 import com.tencent.imsdk.v2.V2TIMGroupMemberInfo;
 import com.tencent.imsdk.v2.V2TIMManager;
 import com.tencent.imsdk.v2.V2TIMMessage;
 import com.tencent.imsdk.v2.V2TIMSimpleMsgListener;
 import com.tencent.imsdk.v2.V2TIMValueCallback;
-import com.tencent.openqq.protocol.imsdk.msg;
 
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -42,6 +38,7 @@ import cn.nodemedia.qlive.entity.ChatMsgInfo;
 import cn.nodemedia.qlive.entity.Constants;
 import cn.nodemedia.qlive.entity.GiftCmdInfo;
 import cn.nodemedia.qlive.entity.GiftInfo;
+import cn.nodemedia.qlive.entity.GoodsInfo;
 import cn.nodemedia.qlive.entity.ILVCustomCmd;
 import cn.nodemedia.qlive.entity.ILVLiveConstants;
 import cn.nodemedia.qlive.entity.ILVText;
@@ -56,12 +53,14 @@ import cn.nodemedia.qlive.utils.view.ChatView;
 import cn.nodemedia.qlive.utils.view.DanmuView;
 import cn.nodemedia.qlive.utils.view.GiftFullView;
 import cn.nodemedia.qlive.utils.view.GiftRepeatView;
+import cn.nodemedia.qlive.utils.view.GoodView;
+import cn.nodemedia.qlive.utils.view.GoodsListView;
 import cn.nodemedia.qlive.utils.view.HostControlDialog;
 import cn.nodemedia.qlive.utils.view.SizeChangeRelativeLayout;
 import cn.nodemedia.qlive.utils.view.TitleView;
 import cn.nodemedia.qlive.utils.view.VipEnterView;
-import cn.nodemedia.qlive.view.MyRequest.CreateRoomRequest;
-import cn.nodemedia.qlive.view.MyRequest.GetUserInfoRequest;
+import cn.nodemedia.qlive.view.MyRequest.GetGoodsInfoRequest;
+import cn.nodemedia.qlive.view.MyRequest.GetLiveRoomRequest;
 import cn.nodemedia.qlive.view.MyRequest.HeartBeatRequest;
 import cn.nodemedia.qlive.view.MyRequest.QuitRoomRequest;
 import tyrantgit.widget.HeartLayout;
@@ -70,26 +69,36 @@ import xyz.tanwb.airship.view.BaseActivity;
 
 public class PushActivity extends BaseActivity<PushContract.Presenter> implements PushContract.View {
 
-    private static final int FRONT_CAMERA = 0;
-    private static final int BACK_CAMERA = 1;
+    private static  int FRONT_CAMERA = 0;
+    private static  int BACK_CAMERA = 1;
     private NodeCameraView pushSurface;
     SharedPreferences spf;
     int userId;
     String userName;
     String userAvatar;
     String streamId;
+    ArrayList<Integer> goodsArr;
+    ArrayList<GoodsInfo> selectedGoods=new ArrayList<>();
+    String goodsIds;
+    ArrayList<GoodsInfo> goodsListValue = new ArrayList<>();
+    private static final String urlGet = "http://47.99.171.180:8082/streaming/";
 
     private SizeChangeRelativeLayout mSizeChangeLayout;
     private TitleView mTitleView;
     private BottomControlView mControlView;
+    private GoodsListView mGoodsListView;
     private ChatView mChatView;
     private VipEnterView mVipEnterView;
     private ChatMsgListView mChatListView;
     private DanmuView mDanmuView;
+    private GoodView goodView;
+    private TextView mGoodsNum;
+    private FrameLayout selectedGoodsButton;
+    private Button goodsListVis;
 
-    private Timer heartBeatTimer = new Timer();
-    private Timer heartTimer = new Timer();
-    private Random heartRandom = new Random();
+    private  Timer heartBeatTimer = new Timer();
+    private  Timer heartTimer = new Timer();
+    private  Random heartRandom = new Random();
     private HeartLayout heartLayout;
     private GiftRepeatView giftRepeatView;
     private GiftFullView giftFullView;
@@ -98,7 +107,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
 
     private String UserSig;
     private int status;
-    private static Gson GsonInstance = new Gson();
+    private static  Gson GsonInstance = new Gson();
 
 
     private HeartBeatRequest mHeartBeatRequest = null;
@@ -117,9 +126,29 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
     @Override
     public void initView(Bundle savedInstanceState) {
         getParams();
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);  //默认竖屏
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);  //默认竖屏
         assignViews();
         login();
+
+    }
+    private void getSelectedGoods(){
+        GetGoodsInfoRequest getGoodsInfoRequest=new GetGoodsInfoRequest();
+        GetGoodsInfoRequest.getGoodsParam param=new GetGoodsInfoRequest.getGoodsParam();
+        param.goodsIdList=goodsArr.toString();
+        getGoodsInfoRequest.setOnResultListener(new BaseRequest.OnResultListener<ArrayList<GoodsInfo>>() {
+            @Override
+            public void onFail(int code, String msg) {
+//                Toast.makeText(getContext(), "错误代码："+code+",商品请求失败：" + msg, Toast.LENGTH_SHORT).show();
+                Log.e("getGoodsInfoRequest",msg,null);
+            }
+
+            @Override
+            public void onSuccess(ArrayList<GoodsInfo> goods) {
+                selectedGoods.addAll(goods);
+
+            }
+        });
+        getGoodsInfoRequest.request(param);
 
     }
 
@@ -133,6 +162,25 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         hostControlState=new HostControlState();
         audioManager = (AudioManager) getSystemService(Service.AUDIO_SERVICE);
         status = V2TIMManager.getInstance().getLoginStatus();
+        goodsArr= getIntent().getIntegerArrayListExtra("selectedGoods");
+
+        GetLiveRoomRequest getLiveRoomRequest = new GetLiveRoomRequest();
+        GetLiveRoomRequest.getLiveRoomParam param = new GetLiveRoomRequest.getLiveRoomParam();
+        param.streamId = streamId;
+        getLiveRoomRequest.setOnResultListener(new BaseRequest.OnResultListener<RoomInfo>() {
+            @Override
+            public void onFail(int code, String msg) {
+                Log.e("getLiveRoomRequest", code + "," + msg, null);
+            }
+
+            @Override
+            public void onSuccess(RoomInfo roomInfo) {
+                goodsIds = roomInfo.goods_selected;
+                Log.e("goodsIds", goodsIds, null);
+            }
+        });
+        getLiveRoomRequest.request(param);
+
     }
 
     private void login() {
@@ -205,6 +253,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
                 addMsgListener();
                 startHeartBeat();
                 startHeartAnim();
+                getSelectedGoods();
 
             }
         });
@@ -326,7 +375,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         mChatView = findViewById(R.id.chat_view);
         mChatView.setOnChatSendListener(new ChatView.OnChatSendListener() {
             @Override
-            public void onChatSend(final ILVCustomCmd customCmd) {
+            public void onChatSend( ILVCustomCmd customCmd) {
                 //发送消息
                 customCmd.setStreamId(streamId);
                 customCmd.setUserProfile(appUserProfile);
@@ -377,6 +426,80 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         heartLayout = findViewById(R.id.heart_layout);
         giftRepeatView = findViewById(R.id.gift_repeat_view);
         giftFullView = findViewById(R.id.gift_full_view);
+
+        //商品列表
+        mGoodsListView = findViewById(R.id.goods_view_list);
+        mGoodsListView.setIsHost(true);
+        mGoodsListView.setOnControlListener(new GoodsListView.OnGoodsListener() {
+            @Override
+            public void onCommonClick(int i, ArrayList<GoodsInfo> mGoodsInfos) {
+                Toast.makeText(getContext(), mGoodsInfos.get(i).getGoods_id() + "", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onHostClick(int i, ArrayList<GoodsInfo> mGoodsInfos) {
+                Toast.makeText(getContext(), mGoodsInfos.get(i).getGoods_id() + "", Toast.LENGTH_SHORT).show();
+                mGoodsListView.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        //选中商品按钮 goods_list_view
+        selectedGoodsButton = findViewById(R.id.goods_list_view);
+        selectedGoodsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mGoodsListView.setVisibility(mGoodsListView.getVisibility() == View.INVISIBLE ? View.VISIBLE : View.INVISIBLE);
+            }
+        });
+        goodsListVis=findViewById(R.id.goods_list_vis);
+        goodsListVis.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mGoodsListView.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        //直播购物界面
+
+        goodView = findViewById(R.id.goods_view_self);
+
+
+        GetGoodsInfoRequest getGoodsInfoRequest = new GetGoodsInfoRequest();
+        GetGoodsInfoRequest.getGoodsParam goodsParam = new GetGoodsInfoRequest.getGoodsParam();
+        goodsParam.goodsIdList = goodsIds;
+        getGoodsInfoRequest.setOnResultListener(new BaseRequest.OnResultListener<ArrayList<GoodsInfo>>() {
+            @Override
+            public void onFail(int code, String msg) {
+                Log.e("getGoodsInfoRequest", code + ":" + msg, null);
+            }
+
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onSuccess(ArrayList<GoodsInfo> goodsList) {
+                Log.e("goodsList", goodsList.toString(), null);
+//                goodsListValue= goodsList;
+                //初始化商品列表
+
+                mGoodsNum = findViewById(R.id.goods_num);
+                Log.e("goodsListValue", goodsListValue.toString(), null);
+
+                mGoodsListView.addGoodsInfos(goodsList);
+                mGoodsNum.bringToFront();
+                mGoodsNum.setText(goodsList.size() + "");
+
+                goodView.setGoodAvatar(urlGet + goodsList.get(0).getPhoto_path());
+                goodView.setGoodName(goodsList.get(0).getName());
+                goodView.setGoodPrice(goodsList.get(0).getPrice());
+//                goodView.setOnGoodListener(new GoodView.OnGoodListener() {
+//                    @Override
+//                    public void onGoodClick() {
+//                        //TODO:跳转到购物界面
+//                        Toast.makeText(getContext(), "跳转到购物界面", Toast.LENGTH_SHORT).show();
+//                    }
+//                });
+            }
+        });
+        getGoodsInfoRequest.request(goodsParam);
     }
 
 
@@ -408,7 +531,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
     }
 
 
-    private HostControlDialog.OnControlClickListener controlClickListener = new HostControlDialog.OnControlClickListener() {
+    private  HostControlDialog.OnControlClickListener controlClickListener = new HostControlDialog.OnControlClickListener() {
         @Override
         public void onBeautyClick() {
             //点击美颜
@@ -499,6 +622,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
 
 
     }
+
     private void quitLive() {
 
         ILVCustomCmd customCmd = new ILVCustomCmd();
@@ -506,6 +630,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_LEAVE);
         customCmd.setStreamId(streamId);
         customCmd.setUserProfile(appUserProfile);
+
 
         byte[] customData = GsonInstance.toJson(customCmd).getBytes();
 

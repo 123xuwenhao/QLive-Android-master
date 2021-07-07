@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg_white"
+    android:maxHeight="@dimen/dp_400">
+    <Button
+        android:id="@+id/goods_list_vis"
+        android:layout_width="@dimen/dp_40"
+        android:layout_height="@dimen/dp_40"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:text="关"
+        />
+
+    <ListView
+        android:id="@+id/goods_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="vertical" />
+
+</RelativeLayout>

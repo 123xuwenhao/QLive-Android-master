@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="@dimen/dp_400"
+    android:layout_height="@dimen/dp_130"
+    android:orientation="horizontal"
+    android:layout_centerVertical="false">
+
+    <ImageView
+        android:id="@+id/goods_avatar_item"
+        android:layout_width="@dimen/dp_130"
+        android:layout_height="@dimen/dp_130"/>
+    <LinearLayout
+        android:layout_width="@dimen/dp_270"
+        android:layout_height="@dimen/dp_130"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/goods_name_item"
+            android:layout_width="@dimen/dp_270"
+            android:layout_height="@dimen/dp_50"/>
+        <LinearLayout
+            android:id="@+id/right_bottom_item"
+            android:layout_width="@dimen/dp_270"
+            android:layout_height="@dimen/dp_80"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/goods_price_item"
+                android:layout_width="@dimen/dp_210"
+                android:layout_height="@dimen/dp_80"/>
+            <Button
+                android:id="@+id/goods_shop_item"
+                android:layout_width="@dimen/dp_60"
+                android:layout_height="@dimen/dp_60"
+                android:layout_marginTop="@dimen/dp_20"
+                android:text="去抢" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

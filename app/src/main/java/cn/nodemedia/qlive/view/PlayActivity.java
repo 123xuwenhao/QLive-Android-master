@@ -1,12 +1,19 @@
 package cn.nodemedia.qlive.view;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.media.Image;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
@@ -16,9 +23,6 @@ import com.tencent.imsdk.v2.V2TIMManager;
 import com.tencent.imsdk.v2.V2TIMMessage;
 import com.tencent.imsdk.v2.V2TIMSimpleMsgListener;
 import com.tencent.imsdk.v2.V2TIMValueCallback;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,9 +39,11 @@ import cn.nodemedia.qlive.entity.ChatMsgInfo;
 import cn.nodemedia.qlive.entity.Constants;
 import cn.nodemedia.qlive.entity.GiftCmdInfo;
 import cn.nodemedia.qlive.entity.GiftInfo;
+import cn.nodemedia.qlive.entity.GoodsInfo;
 import cn.nodemedia.qlive.entity.ILVCustomCmd;
 import cn.nodemedia.qlive.entity.ILVLiveConstants;
 import cn.nodemedia.qlive.entity.ILVText;
+import cn.nodemedia.qlive.entity.RoomInfo;
 import cn.nodemedia.qlive.entity.UserInfo;
 import cn.nodemedia.qlive.utils.BaseRequest;
 import cn.nodemedia.qlive.utils.GenerateTestUserSig;
@@ -47,9 +53,13 @@ import cn.nodemedia.qlive.utils.view.ChatView;
 import cn.nodemedia.qlive.utils.view.DanmuView;
 import cn.nodemedia.qlive.utils.view.GiftFullView;
 import cn.nodemedia.qlive.utils.view.GiftRepeatView;
+import cn.nodemedia.qlive.utils.view.GoodView;
+import cn.nodemedia.qlive.utils.view.GoodsListView;
 import cn.nodemedia.qlive.utils.view.SizeChangeRelativeLayout;
 import cn.nodemedia.qlive.utils.view.TitleView;
 import cn.nodemedia.qlive.utils.view.VipEnterView;
+import cn.nodemedia.qlive.view.MyRequest.GetGoodsInfoRequest;
+import cn.nodemedia.qlive.view.MyRequest.GetLiveRoomRequest;
 import cn.nodemedia.qlive.view.MyRequest.GetSingleUserInfoRequest;
 import cn.nodemedia.qlive.view.MyRequest.GetUserInfoRequest;
 import cn.nodemedia.qlive.view.MyRequest.GetWatcherRequest;
@@ -69,22 +79,34 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
     private String userName;
     private String userAvatar;
     private String streamId;
+    String goodsIds;
+    ArrayList<GoodsInfo> goodsListValue = new ArrayList<>();
+    private static final String urlGet = "http://47.99.171.180:8082/streaming/";
 
     private static final String TAG = "gift";
     private SizeChangeRelativeLayout mSizeChangeLayout;
     private TitleView titleView;
     private BottomControlView mControlView;
+    private GoodsListView mGoodsListView;
     private ChatView mChatView;
     private ChatMsgListView mChatListView;
     private VipEnterView mVipEnterView;
     private DanmuView mDanmuView;
     private GiftSelectDialog giftSelectDialog;
+    private TextView mGoodsNum;
+    private FrameLayout selectedGoodsButton;
+    private Button goodsListVis;
 
     private Timer heartTimer = new Timer();
     private Random heartRandom = new Random();
     private HeartLayout heartLayout;
     private GiftRepeatView giftRepeatView;
     private GiftFullView giftFullView;
+    private GoodView goodView;
+
+    //显示两个不同的button
+//    private Button goodsShopItem;
+    private Button goodsSelectedItem;
 
     private HeartBeatRequest mHeartBeatRequest = null;
     private Timer heartBeatTimer = new Timer();
@@ -93,8 +115,8 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
 
     private String UserSig;
     private int status;
-    private static Gson GsonInstance=new Gson();
-    private static UserInfo appUserProfile=MyApplication.getApplication().getSelfProfile();
+    private static Gson GsonInstance = new Gson();
+    private static UserInfo appUserProfile = MyApplication.getApplication().getSelfProfile();
 
     @Override
     public int getLayoutId() {
@@ -117,9 +139,25 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         userName = intent.getStringExtra("userName");
         userAvatar = intent.getStringExtra("userAvatar");
         streamId = intent.getStringExtra("streamId");
-        hostId = intent.getIntExtra("hostId",-1);
+        hostId = intent.getIntExtra("hostId", -1);
         UserSig = GenerateTestUserSig.genTestUserSig(userId + "");
         status = V2TIMManager.getInstance().getLoginStatus();
+        GetLiveRoomRequest getLiveRoomRequest = new GetLiveRoomRequest();
+        GetLiveRoomRequest.getLiveRoomParam param = new GetLiveRoomRequest.getLiveRoomParam();
+        param.streamId = streamId;
+        getLiveRoomRequest.setOnResultListener(new BaseRequest.OnResultListener<RoomInfo>() {
+            @Override
+            public void onFail(int code, String msg) {
+                Log.e("getLiveRoomRequest", code + "," + msg, null);
+            }
+
+            @Override
+            public void onSuccess(RoomInfo roomInfo) {
+                goodsIds = roomInfo.goods_selected;
+                Log.e("goodsIds", goodsIds, null);
+            }
+        });
+        getLiveRoomRequest.request(param);
     }
 
     private void joinRoom() {
@@ -131,7 +169,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         V2TIMManager.getInstance().joinGroup(streamId, "AVChatroom", new V2TIMCallback() {
             @Override
             public void onError(int code, String desc) {
-                Toast.makeText(PlayActivity.this,"直播已结束",Toast.LENGTH_SHORT).show();
+                Toast.makeText(PlayActivity.this, "直播已结束", Toast.LENGTH_SHORT).show();
                 finish();
             }
 
@@ -156,12 +194,15 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
     }
 
     private void joinRoomRequst() {
-        JoinRoomRequst requst=new JoinRoomRequst();
-        JoinRoomRequst.getWatcherParam param=new JoinRoomRequst.getWatcherParam();
-        param.streamId=streamId;
-        param.userId=userId+"";
+        JoinRoomRequst requst = new JoinRoomRequst();
+        JoinRoomRequst.getWatcherParam param = new JoinRoomRequst.getWatcherParam();
+        param.streamId = streamId;
+        param.userId = userId + "";
         requst.request(param);
     }
+
+
+    //这里也可以接受主播选择讲解商品的自定义消息
 
     private void addMsgListener() {
         //接收自定义消息
@@ -184,13 +225,13 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
 
                     String name = userProfile.getUser_name();
                     if (TextUtils.isEmpty(name)) {
-                        name = userProfile.getUser_id()+"";
+                        name = userProfile.getUser_id() + "";
                     }
                     ChatMsgInfo danmuInfo = ChatMsgInfo.createDanmuInfo(content, cmdStreamId, userProfile.getUser_avatar(), name);
                     mDanmuView.addMsgInfo(danmuInfo);
                 } else if (cmd.getCmd() == ILVLiveConstants.ILVLIVE_CMD_LEAVE) {
                     //用户离开消息
-                    if (hostId==userProfile.getUser_id()) {
+                    if (hostId == userProfile.getUser_id()) {
                         //主播退出直播，
                         finish();
                     } else {
@@ -207,6 +248,8 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         });
     }
 
+    //发送心跳包
+
     private void startHeartBeat() {
         heartBeatTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -215,38 +258,41 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
                 if (mHeartBeatRequest == null) {
                     mHeartBeatRequest = new HeartBeatRequest();
                 }
-                String userId = MyApplication.getApplication().getSelfProfile().getUser_id()+"";
-                HeartBeatRequest.getHeartBeatParam heartBeatParam=new HeartBeatRequest.getHeartBeatParam();
-                heartBeatParam.streamId=streamId;
-                heartBeatParam.userId=userId;
+                String userId = MyApplication.getApplication().getSelfProfile().getUser_id() + "";
+                HeartBeatRequest.getHeartBeatParam heartBeatParam = new HeartBeatRequest.getHeartBeatParam();
+                heartBeatParam.streamId = streamId;
+                heartBeatParam.userId = userId;
                 mHeartBeatRequest.request(heartBeatParam);
             }
         }, 0, 4000); //4秒钟 。服务器是10秒钟去检测一次。
     }
 
+    //得到随机颜色
+
     private int getRandomColor() {
         return Color.rgb(heartRandom.nextInt(255), heartRandom.nextInt(255), heartRandom.nextInt(255));
     }
 
+    //更新上方标题
 
     private void updateTitleView() {
 //        List<String> list = new ArrayList<String>();
 //        list.add(hostId+"");
-        GetSingleUserInfoRequest getSingleUserInfoRequest=new GetSingleUserInfoRequest();
-        GetSingleUserInfoRequest.getUserParam param=new GetSingleUserInfoRequest.getUserParam();
-        param.userId=hostId+"";
+        GetSingleUserInfoRequest getSingleUserInfoRequest = new GetSingleUserInfoRequest();
+        GetSingleUserInfoRequest.getUserParam param = new GetSingleUserInfoRequest.getUserParam();
+        param.userId = hostId + "";
         getSingleUserInfoRequest.setOnResultListener(new BaseRequest.OnResultListener<UserInfo>() {
             @Override
             public void onFail(int code, String msg) {
-                Toast.makeText(mContext,"获取title失败！",Toast.LENGTH_SHORT).show();
-                Log.e("abc","获取title失败！",null);
+                Toast.makeText(mContext, "获取title失败！", Toast.LENGTH_SHORT).show();
+                Log.e("abc", "获取title失败！", null);
                 titleView.setHost(null);
             }
 
             @Override
             public void onSuccess(UserInfo userInfo) {
-                Toast.makeText(mContext,"获取title成功！",Toast.LENGTH_SHORT).show();
-                Log.e("abc","获取title成功！",null);
+                Toast.makeText(mContext, "获取title成功！", Toast.LENGTH_SHORT).show();
+                Log.e("abc", "获取title成功！", null);
                 titleView.setHost(userInfo);
             }
         });
@@ -257,8 +303,8 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
 
         //请求已经加入房间的成员信息
         GetWatcherRequest watcherRequest = new GetWatcherRequest();
-        GetWatcherRequest.getWatcherParam watcherParam =new GetWatcherRequest.getWatcherParam();
-        watcherParam.streamId=streamId;
+        GetWatcherRequest.getWatcherParam watcherParam = new GetWatcherRequest.getWatcherParam();
+        watcherParam.streamId = streamId;
         watcherRequest.setOnResultListener(new BaseRequest.OnResultListener<Set<String>>() {
             @Override
             public void onFail(int code, String msg) {
@@ -271,11 +317,10 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
                     return;
                 }
 
-                List<String> watcherList = new ArrayList<String>();
-                watcherList.addAll(watchers);
-                GetUserInfoRequest getUserInfoRequest=new GetUserInfoRequest();
-                GetUserInfoRequest.getUserParam param1= new GetUserInfoRequest.getUserParam();
-                param1.userIdList=watcherList.toString();
+                List<String> watcherList = new ArrayList<>(watchers);
+                GetUserInfoRequest getUserInfoRequest = new GetUserInfoRequest();
+                GetUserInfoRequest.getUserParam param1 = new GetUserInfoRequest.getUserParam();
+                param1.userIdList = watcherList.toString();
                 getUserInfoRequest.setOnResultListener(new BaseRequest.OnResultListener<List<UserInfo>>() {
                     @Override
                     public void onFail(int code, String msg) {
@@ -293,27 +338,31 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         watcherRequest.request(watcherParam);
     }
 
+    //发送进入房间消息
+
     private void sendEnterRoomMsg() {
         ILVCustomCmd customCmd = new ILVCustomCmd();
         customCmd.setType(ILVText.ILVTextType.eGroupMsg);
         customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_ENTER);
         customCmd.setStreamId(streamId);
         customCmd.setUserProfile(appUserProfile);
-        byte[] customData=GsonInstance.toJson(customCmd).getBytes();
+        byte[] customData = GsonInstance.toJson(customCmd).getBytes();
         V2TIMManager.getInstance().sendGroupCustomMessage(customData, streamId, V2TIMMessage.V2TIM_PRIORITY_NORMAL, new V2TIMValueCallback<V2TIMMessage>() {
             @Override
             public void onError(int code, String desc) {
-                Toast.makeText(PlayActivity.this,"发送进入消息失败:"+desc,Toast.LENGTH_SHORT).show();
+                Toast.makeText(PlayActivity.this, "发送进入消息失败:" + desc, Toast.LENGTH_SHORT).show();
 
             }
 
             @Override
             public void onSuccess(V2TIMMessage v2TIMMessage) {
-               Toast.makeText(PlayActivity.this,"发送进入消息成功",Toast.LENGTH_SHORT).show();
+                Toast.makeText(PlayActivity.this, "发送进入消息成功", Toast.LENGTH_SHORT).show();
 
             }
         });
     }
+
+    //开始心跳动画
 
     private void startHeartAnim() {
         heartTimer.scheduleAtFixedRate(new TimerTask() {
@@ -325,7 +374,10 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
 
     }
 
+    @SuppressLint("WrongViewCast")
     private void assignIMViews() {
+        goodsSelectedItem=findViewById(R.id.goods_selected_item);
+        goodsSelectedItem.setVisibility(View.INVISIBLE);
 
         mSizeChangeLayout = findViewById(R.id.size_change_layout);
         mSizeChangeLayout.setOnSizeChangeListener(new SizeChangeRelativeLayout.OnSizeChangeListener() {
@@ -378,14 +430,13 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         });
 
 
-
         mChatView.setOnChatSendListener(new ChatView.OnChatSendListener() {
             @Override
-            public void onChatSend(final ILVCustomCmd customCmd) {
+            public void onChatSend(ILVCustomCmd customCmd) {
                 //发送消息
                 customCmd.setStreamId(streamId);
                 customCmd.setUserProfile(appUserProfile);
-                byte[] customData=GsonInstance.toJson(customCmd).getBytes();
+                byte[] customData = GsonInstance.toJson(customCmd).getBytes();
                 V2TIMManager.getInstance().sendGroupCustomMessage(customData, streamId, V2TIMMessage.V2TIM_PRIORITY_NORMAL, new V2TIMValueCallback<V2TIMMessage>() {
                     @Override
                     public void onError(int code, String desc) {
@@ -397,13 +448,13 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
                         if (customCmd.getCmd() == Constants.CMD_CHAT_MSG_LIST) {
                             //如果是列表类型的消息，发送给列表显示
                             String chatContent = customCmd.getParam();
-                            String userId = appUserProfile.getUser_id()+"";
+                            String userId = appUserProfile.getUser_id() + "";
                             String avatar = appUserProfile.getUser_avatar();
                             ChatMsgInfo info = ChatMsgInfo.createListInfo(chatContent, userId, avatar);
                             mChatListView.addMsgInfo(info);
                         } else if (customCmd.getCmd() == Constants.CMD_CHAT_MSG_DANMU) {
                             String chatContent = customCmd.getParam();
-                            String userId = appUserProfile.getUser_id()+"";
+                            String userId = appUserProfile.getUser_id() + "";
                             String avatar = appUserProfile.getUser_avatar();
                             ChatMsgInfo info = ChatMsgInfo.createListInfo(chatContent, userId, avatar);
                             mChatListView.addMsgInfo(info);
@@ -424,6 +475,24 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
 
         mControlView.setVisibility(View.VISIBLE);
         mChatView.setVisibility(View.INVISIBLE);
+        //商品列表
+        mGoodsListView = findViewById(R.id.goods_view_list);
+
+        //选中商品按钮 goods_list_view
+        selectedGoodsButton = findViewById(R.id.goods_list_view);
+        selectedGoodsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mGoodsListView.setVisibility(mGoodsListView.getVisibility() == View.INVISIBLE ? View.VISIBLE : View.INVISIBLE);
+            }
+        });
+        goodsListVis=findViewById(R.id.goods_list_vis);
+        goodsListVis.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mGoodsListView.setVisibility(View.INVISIBLE);
+            }
+        });
 
         mChatListView = findViewById(R.id.chat_list);
         mVipEnterView = findViewById(R.id.vip_enter);
@@ -432,14 +501,58 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         heartLayout = findViewById(R.id.heart_layout);
         giftRepeatView = findViewById(R.id.gift_repeat_view);
         giftFullView = findViewById(R.id.gift_full_view);
+
+        //直播购物界面
+
+        goodView = findViewById(R.id.goods_view_self);
+
+
+        GetGoodsInfoRequest getGoodsInfoRequest = new GetGoodsInfoRequest();
+        GetGoodsInfoRequest.getGoodsParam goodsParam = new GetGoodsInfoRequest.getGoodsParam();
+        goodsParam.goodsIdList = goodsIds;
+        getGoodsInfoRequest.setOnResultListener(new BaseRequest.OnResultListener<ArrayList<GoodsInfo>>() {
+            @Override
+            public void onFail(int code, String msg) {
+                Log.e("getGoodsInfoRequest", code + ":" + msg, null);
+            }
+
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onSuccess(ArrayList<GoodsInfo> goodsList) {
+                Log.e("goodsList", goodsList.toString(), null);
+//                goodsListValue= goodsList;
+                //初始化商品列表
+
+                mGoodsNum = findViewById(R.id.goods_num);
+                Log.e("goodsListValue", goodsListValue.toString(), null);
+
+                mGoodsListView.addGoodsInfos(goodsList);
+                mGoodsNum.bringToFront();
+                mGoodsNum.setText(goodsList.size() + "");
+
+                goodView.setGoodAvatar(urlGet + goodsList.get(0).getPhoto_path());
+                goodView.setGoodName(goodsList.get(0).getName());
+                goodView.setGoodPrice(goodsList.get(0).getPrice());
+                goodView.setOnGoodListener(new GoodView.OnGoodListener() {
+                    @Override
+                    public void onGoodClick() {
+                        //TODO:跳转到购物界面
+                        Toast.makeText(getContext(), "跳转到购物界面", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
+        getGoodsInfoRequest.request(goodsParam);
+
     }
+
 
     private GiftSelectDialog.OnGiftSendListener giftSendListener = new GiftSelectDialog.OnGiftSendListener() {
         @Override
-        public void onGiftSendClick(final ILVCustomCmd customCmd) {
+        public void onGiftSendClick(ILVCustomCmd customCmd) {
             customCmd.setStreamId(streamId);
             customCmd.setUserProfile(appUserProfile);
-            byte[] customData=GsonInstance.toJson(customCmd).getBytes();
+            byte[] customData = GsonInstance.toJson(customCmd).getBytes();
             V2TIMManager.getInstance().sendGroupCustomMessage(customData, streamId, V2TIMMessage.V2TIM_PRIORITY_NORMAL, new V2TIMValueCallback<V2TIMMessage>() {
 
                 @Override
@@ -481,16 +594,16 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_LEAVE);
         customCmd.setStreamId(streamId);
         customCmd.setUserProfile(appUserProfile);
-        byte[] customData=GsonInstance.toJson(customCmd).getBytes();
+        byte[] customData = GsonInstance.toJson(customCmd).getBytes();
         V2TIMManager.getInstance().sendGroupCustomMessage(customData, streamId, V2TIMMessage.V2TIM_PRIORITY_NORMAL, new V2TIMValueCallback<V2TIMMessage>() {
             @Override
             public void onError(int code, String desc) {
-                Log.e("sendGroupCustomMessage","观众发出离开消息失败或者主播已经关闭直播间"+code+","+desc,null);
+                Log.e("sendGroupCustomMessage", "观众发出离开消息失败或者主播已经关闭直播间" + code + "," + desc, null);
             }
 
             @Override
             public void onSuccess(V2TIMMessage v2TIMMessage) {
-                Log.e("sendGroupCustomMessage","观众发出离开消息成功",null);
+                Log.e("sendGroupCustomMessage", "观众发出离开消息成功", null);
                 V2TIMManager.getInstance().quitGroup(streamId, new V2TIMCallback() {
                     @Override
                     public void onError(int code, String desc) {
@@ -500,7 +613,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
                     @Override
                     public void onSuccess() {
 
-                        if(V2TIMManager.getInstance().getLoginStatus()==V2TIMManager.V2TIM_STATUS_LOGINED) {
+                        if (V2TIMManager.getInstance().getLoginStatus() == V2TIMManager.V2TIM_STATUS_LOGINED) {
                             logout();
                         }
 
@@ -516,12 +629,12 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         request.setOnResultListener(new BaseRequest.OnResultListener() {
             @Override
             public void onFail(int code, String msg) {
-                Log.e("QuitRoomRequest","观众信息删除失败"+code+","+msg,null);
+                Log.e("QuitRoomRequest", "观众信息删除失败" + code + "," + msg, null);
             }
 
             @Override
             public void onSuccess(Object object) {
-                Log.e("QuitRoomRequest","观众信息删除成功",null);
+                Log.e("QuitRoomRequest", "观众信息删除成功", null);
             }
         });
         request.request(param);
@@ -546,15 +659,15 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         if (status == V2TIMManager.V2TIM_STATUS_LOGINED) {
             joinRoom();
         } else if (status == V2TIMManager.V2TIM_STATUS_LOGOUT) {
-            V2TIMManager.getInstance().login(userId+"", UserSig, new V2TIMCallback() {
+            V2TIMManager.getInstance().login(userId + "", UserSig, new V2TIMCallback() {
                 @Override
                 public void onError(int code, String desc) {
-                    Toast.makeText(getApplication(),"登录失败",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplication(), "登录失败", Toast.LENGTH_SHORT).show();
                 }
 
                 @Override
                 public void onSuccess() {
-                    Toast.makeText(getApplication(),"登陆成功",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplication(), "登陆成功", Toast.LENGTH_SHORT).show();
                     joinRoom();
                 }
             });
