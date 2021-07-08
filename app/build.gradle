@@ -120,4 +120,5 @@ dependencies {
 
 //    //腾讯IM
 //    implementation 'com.tencent.imsdk:tuikit:5.1.56'
+    implementation 'com.github.HanHuoBin:BaseDialog:1.2.0'
 }

@@ -57,9 +57,8 @@ public class PushFragment extends Fragment {
         getSingleUserInfoRequest.request(param);
         ArrayList<Integer> goods=new ArrayList<>();
         goods.add(1);
-        goods.add(5);
-        goods.add(6);
-        goods.add(7);
+        goods.add(2);
+        goods.add(3);
         Intent intent = new Intent(getActivity(), CreateRoomActivity.class);
         intent.putIntegerArrayListExtra("selectedGoods",goods);
         intent.putExtra("userId", 123);

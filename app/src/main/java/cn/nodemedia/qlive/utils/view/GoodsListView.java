@@ -187,7 +187,7 @@ public class GoodsListView extends RelativeLayout {
 
     private GoodsListView.OnGoodsListener mOnGoodsListener;
 
-    public void setOnControlListener(GoodsListView.OnGoodsListener l) {
+    public void setOnGoodsListener(GoodsListView.OnGoodsListener l) {
         mOnGoodsListener = l;
     }
 

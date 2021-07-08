@@ -15,12 +15,41 @@
     <cn.nodemedia.qlive.utils.view.TitleView
         android:id="@+id/title_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/dp_15"
+        android:layout_marginTop="@dimen/dp_15"/>
+
+    <LinearLayout
+        android:id="@+id/room_flag"
+        android:layout_width="@dimen/dp_80"
+        android:layout_height="@dimen/dp_60"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="@dimen/dp_15"
+        android:layout_marginTop="@dimen/dp_60"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/dp_30"
+            android:gravity="center"
+            android:background="@color/bg_white"
+            android:text="@string/yiboString" />
+        <TextView
+            android:id="@+id/room_id"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/dp_30"
+            android:contentDescription="@string/shop_list"
+            android:textColor="@color/bg_white"
+            android:background="@color/colorControlNormal"
+            android:gravity="center"/>
+
+    </LinearLayout>
 
     <FrameLayout
         android:id="@+id/goods_list_view"
         android:layout_width="@dimen/dp_60"
         android:layout_height="@dimen/dp_60"
+        android:layout_marginEnd="@dimen/dp_15"
         android:layout_above="@id/bottom_view"
         android:layout_alignParentEnd="true">
         <TextView
@@ -59,7 +88,8 @@
         android:id="@+id/chat_list_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@id/bottom_view"
+        android:layout_above="@id/goods_view_self"
+        android:layout_marginBottom="@dimen/dp_15"
         android:orientation="horizontal">
 
         <cn.nodemedia.qlive.utils.view.ChatMsgListView
@@ -107,6 +137,7 @@
         android:id="@+id/goods_view_self"
         android:layout_width="@dimen/dp_200"
         android:layout_height="@dimen/dp_110"
+        android:layout_marginStart="@dimen/dp_15"
         android:layout_above="@id/bottom_view"
         android:layout_marginBottom="20dp"/>
 

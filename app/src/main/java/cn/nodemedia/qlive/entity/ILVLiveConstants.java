@@ -22,7 +22,7 @@ public class ILVLiveConstants {
     //public static final String TCEXT_MAGIC          = "LiveNotification";
 
     //主播选择商品消息
-    public static final int ILVLIVE_CMD_SELECTED_GOODS = ILVLIVE_CMD_CUSTOM_LOW_LIMIT + 2;
+    public static final int ILVLIVE_CMD_SELECTED_GOODS = ILVLIVE_CMD_CUSTOM_LOW_LIMIT + 5;
 
     /**
      * 命令字

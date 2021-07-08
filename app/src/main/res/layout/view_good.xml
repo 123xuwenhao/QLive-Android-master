@@ -7,13 +7,15 @@
     android:layout_marginBottom="10dp"
     android:orientation="vertical"
     android:background="@color/bg_white"
-    app:layout_constraintCircleRadius="@dimen/dp_20">
+    app:layout_constraintCircleRadius="@dimen/dp_20"
+    android:gravity="center">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="@dimen/dp_30"
         android:text="@string/goods_title"
-        android:textColor="@color/navigationBarColor"/>
+        android:textColor="@color/navigationBarColor"
+        android:gravity="center"/>
     <LinearLayout
         android:id="@+id/goods_content"
         android:layout_width="@dimen/dp_200"
@@ -43,7 +45,8 @@
                     android:id="@+id/goods_shop"
                     android:layout_width="@dimen/dp_40"
                     android:layout_height="@dimen/dp_50"
-                    android:src="@drawable/gouwu"/>
+                    android:src="@drawable/gouwu"
+                    android:gravity="center"/>
 
             </LinearLayout>
         </LinearLayout>

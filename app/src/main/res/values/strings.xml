@@ -247,4 +247,5 @@
     <string name="publish_wait_uploading">请等待封面上传完成</string>
     <string name="goods_title">主播正在讲解</string>
     <string name="shop_list">商品列表</string>
+    <string name="yiboString">医播直播</string>
 </resources>

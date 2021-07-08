@@ -22,6 +22,11 @@ public class GoodView extends LinearLayout {
     private TextView goodsName;
     private TextView goodsPrice;
     private ImageView goodsShop;
+    private int goodsId;
+
+    public void setShopVis() {
+        goodsShop.setVisibility(View.INVISIBLE);
+    }
 
     public ImageView getGoodAvatar() {
         return goodAvatar;

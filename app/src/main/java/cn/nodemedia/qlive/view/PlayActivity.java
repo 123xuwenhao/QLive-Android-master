@@ -7,25 +7,30 @@ import android.graphics.Color;
 import android.media.Image;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
+import com.hb.dialog.myDialog.MyAlertDialog;
 import com.tencent.imsdk.v2.V2TIMCallback;
 import com.tencent.imsdk.v2.V2TIMGroupMemberInfo;
 import com.tencent.imsdk.v2.V2TIMManager;
 import com.tencent.imsdk.v2.V2TIMMessage;
 import com.tencent.imsdk.v2.V2TIMSimpleMsgListener;
+import com.tencent.imsdk.v2.V2TIMUserInfo;
 import com.tencent.imsdk.v2.V2TIMValueCallback;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
@@ -57,6 +62,7 @@ import cn.nodemedia.qlive.utils.view.GoodView;
 import cn.nodemedia.qlive.utils.view.GoodsListView;
 import cn.nodemedia.qlive.utils.view.SizeChangeRelativeLayout;
 import cn.nodemedia.qlive.utils.view.TitleView;
+import cn.nodemedia.qlive.utils.view.ViewRoundUtils;
 import cn.nodemedia.qlive.utils.view.VipEnterView;
 import cn.nodemedia.qlive.view.MyRequest.GetGoodsInfoRequest;
 import cn.nodemedia.qlive.view.MyRequest.GetLiveRoomRequest;
@@ -96,6 +102,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
     private TextView mGoodsNum;
     private FrameLayout selectedGoodsButton;
     private Button goodsListVis;
+    private TextView roomId;
 
     private Timer heartTimer = new Timer();
     private Random heartRandom = new Random();
@@ -107,6 +114,8 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
     //显示两个不同的button
 //    private Button goodsShopItem;
     private Button goodsSelectedItem;
+
+    private LinearLayout roomFlag;
 
     private HeartBeatRequest mHeartBeatRequest = null;
     private Timer heartBeatTimer = new Timer();
@@ -205,6 +214,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
     //这里也可以接受主播选择讲解商品的自定义消息
 
     private void addMsgListener() {
+
         //接收自定义消息
         V2TIMManager.getInstance().addSimpleMsgListener(new V2TIMSimpleMsgListener() {
             @Override
@@ -233,7 +243,18 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
                     //用户离开消息
                     if (hostId == userProfile.getUser_id()) {
                         //主播退出直播，
-                        finish();
+                        MyAlertDialog myAlertDialog = new MyAlertDialog(getContext()).builder()
+                                .setTitle("提醒")
+                                .setMsg("主播已经下播了，等下次开播再来吧！")
+                                .setPositiveButton("嗯呐", new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        heartTimer.cancel();
+                                        heartBeatTimer.cancel();
+                                        finish();
+                                    }
+                                });
+                        myAlertDialog.show();
                     } else {
                         //观众退出直播
                         titleView.removeWatcher(userProfile);
@@ -242,10 +263,28 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
 
                     titleView.addWatcher(userProfile);
                     mVipEnterView.showVipEnter(userProfile);
+                } else if (cmd.getCmd() == ILVLiveConstants.ILVLIVE_CMD_SELECTED_GOODS) {
+                    GoodsInfo goodsInfo=cmd.getGoodsInfo();
+                    updateGoodsView(goodsInfo);
                 }
+            }
 
+            @Override
+            public void onRecvC2CCustomMessage(String msgID, V2TIMUserInfo sender, byte[] customData) {
+                ILVCustomCmd cmd = GsonInstance.fromJson(new String(customData), ILVCustomCmd.class);
+                if (cmd.getCmd() == ILVLiveConstants.ILVLIVE_CMD_SELECTED_GOODS) {
+                    GoodsInfo goodsInfo=cmd.getGoodsInfo();
+                    updateGoodsView(goodsInfo);
+                }
             }
         });
+    }
+
+    private void updateGoodsView(GoodsInfo goodsInfo) {
+        goodView.setGoodAvatar(urlGet+goodsInfo.getPhoto_path());
+        goodView.setGoodPrice(goodsInfo.getPrice());
+        goodView.setGoodName(goodsInfo.getName());
+        Toast.makeText(PlayActivity.this, "主播正在讲解商品--"+goodsInfo.getName()+"!", Toast.LENGTH_SHORT).show();
     }
 
     //发送心跳包
@@ -376,9 +415,6 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
 
     @SuppressLint("WrongViewCast")
     private void assignIMViews() {
-        goodsSelectedItem=findViewById(R.id.goods_selected_item);
-        goodsSelectedItem.setVisibility(View.INVISIBLE);
-
         mSizeChangeLayout = findViewById(R.id.size_change_layout);
         mSizeChangeLayout.setOnSizeChangeListener(new SizeChangeRelativeLayout.OnSizeChangeListener() {
             @Override
@@ -395,6 +431,13 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         });
 
         titleView = findViewById(R.id.title_view);
+
+        //设置房间标识
+        roomId=findViewById(R.id.room_id);
+        roomFlag = findViewById(R.id.room_flag);
+        ViewRoundUtils.clipViewCornerByDp(roomFlag, 10);
+        roomId.setText("ID:"+streamId);
+
         mChatView = findViewById(R.id.chat_view);
         mControlView = findViewById(R.id.control_view);
         mControlView.setIsHost(false);
@@ -409,7 +452,24 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
             @Override
             public void onCloseClick() {
                 // 点击了关闭按钮，关闭直播
-                finish();
+                MyAlertDialog myAlertDialog = new MyAlertDialog(getContext()).builder()
+                        .setTitle("警告")
+                        .setMsg("您确定要退出直播间吗？")
+                        .setPositiveButton("确认", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                quitRoom();
+                                heartTimer.cancel();
+                                heartBeatTimer.cancel();
+                                finish();
+                            }
+                        }).setNegativeButton("取消", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                //不作操作
+                            }
+                        });
+                myAlertDialog.show();
             }
 
             @Override
@@ -477,6 +537,17 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         mChatView.setVisibility(View.INVISIBLE);
         //商品列表
         mGoodsListView = findViewById(R.id.goods_view_list);
+        mGoodsListView.setOnGoodsListener(new GoodsListView.OnGoodsListener() {
+            @Override
+            public void onCommonClick(int i, ArrayList<GoodsInfo> mGoodsInfos) {
+                Toast.makeText(getContext(), mGoodsInfos.get(i).getGoods_id() + "", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onHostClick(int i, ArrayList<GoodsInfo> mGoodsInfos) {
+                //观众端不做处理
+            }
+        });
 
         //选中商品按钮 goods_list_view
         selectedGoodsButton = findViewById(R.id.goods_list_view);
@@ -505,6 +576,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         //直播购物界面
 
         goodView = findViewById(R.id.goods_view_self);
+        ViewRoundUtils.clipViewCornerByDp(goodView, 10);
 
 
         GetGoodsInfoRequest getGoodsInfoRequest = new GetGoodsInfoRequest();
@@ -682,6 +754,33 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
     }
 
     @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {
+            MyAlertDialog myAlertDialog = new MyAlertDialog(this).builder()
+                    .setTitle("警告")
+                    .setMsg("您确定要退出直播吗？")
+                    .setPositiveButton("确认", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            quitRoom();
+                            heartTimer.cancel();
+                            heartBeatTimer.cancel();
+                            finish();
+                        }
+                    }).setNegativeButton("取消", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            //不作操作
+                        }
+                    });
+            myAlertDialog.show();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+
+    @Override
     public void initPresenter() {
         mPresenter.initPresenter(this);
     }
@@ -701,9 +800,6 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        quitRoom();
-        heartTimer.cancel();
-        heartBeatTimer.cancel();
 
     }
 

@@ -3,7 +3,8 @@
     android:layout_width="@dimen/dp_400"
     android:layout_height="@dimen/dp_130"
     android:orientation="horizontal"
-    android:layout_centerVertical="false">
+    android:layout_centerVertical="false"
+    android:gravity="center">
 
     <ImageView
         android:id="@+id/goods_avatar_item"

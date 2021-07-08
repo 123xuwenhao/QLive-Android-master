@@ -63,6 +63,16 @@ public interface PushContract {
             nodePublisher.stop();
         }
 
+        //关闭录音
+        public void audioStop() {
+            nodePublisher.setAudioEnable(false);
+        }
+
+        //开启录音
+        public void audioStart() {
+            nodePublisher.setAudioEnable(true);
+        }
+
         //设置美颜等级
         public void setBeautyLevel(int i){
             nodePublisher.setBeautyLevel(i);

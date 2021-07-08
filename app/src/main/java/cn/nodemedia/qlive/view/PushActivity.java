@@ -1,6 +1,7 @@
 package cn.nodemedia.qlive.view;
 
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.app.Service;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -10,14 +11,17 @@ import android.media.AudioManager;
 import android.os.Bundle;
 
 import android.text.TextUtils;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
+import com.hb.dialog.myDialog.MyAlertDialog;
 import com.tencent.imsdk.v2.V2TIMCallback;
 import com.tencent.imsdk.v2.V2TIMGroupMemberInfo;
 import com.tencent.imsdk.v2.V2TIMManager;
@@ -58,12 +62,15 @@ import cn.nodemedia.qlive.utils.view.GoodsListView;
 import cn.nodemedia.qlive.utils.view.HostControlDialog;
 import cn.nodemedia.qlive.utils.view.SizeChangeRelativeLayout;
 import cn.nodemedia.qlive.utils.view.TitleView;
+import cn.nodemedia.qlive.utils.view.ViewRoundUtils;
 import cn.nodemedia.qlive.utils.view.VipEnterView;
 import cn.nodemedia.qlive.view.MyRequest.GetGoodsInfoRequest;
 import cn.nodemedia.qlive.view.MyRequest.GetLiveRoomRequest;
 import cn.nodemedia.qlive.view.MyRequest.HeartBeatRequest;
 import cn.nodemedia.qlive.view.MyRequest.QuitRoomRequest;
+import cn.nodemedia.qlive.widget.HintDialog;
 import tyrantgit.widget.HeartLayout;
+import xyz.tanwb.airship.App;
 import xyz.tanwb.airship.utils.Log;
 import xyz.tanwb.airship.view.BaseActivity;
 
@@ -95,6 +102,8 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
     private TextView mGoodsNum;
     private FrameLayout selectedGoodsButton;
     private Button goodsListVis;
+    private TextView roomId;
+    private LinearLayout roomFlag;
 
     private  Timer heartBeatTimer = new Timer();
     private  Timer heartTimer = new Timer();
@@ -117,6 +126,8 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
     UserInfo appUserProfile = MyApplication.getApplication().getSelfProfile();
 
     AudioManager audioManager;
+
+    private GoodsInfo goodsInfo;
 
     @Override
     public int getLayoutId() {
@@ -302,6 +313,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
                     //用户进入直播
                     mTitleView.addWatcher(userProfile);
                     mVipEnterView.showVipEnter(userProfile);
+                    sendC2CMsg(goodsInfo,userProfile);
                 } else if (cmd.getCmd() == ILVLiveConstants.ILVLIVE_CMD_LEAVE) {
                     //用户离开消息
                     mTitleView.removeWatcher(userProfile);
@@ -333,6 +345,13 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         mTitleView = findViewById(R.id.title_view);
         mTitleView.setHost(MyApplication.getApplication().getSelfProfile());
 
+        //设置房间标识
+        roomId=findViewById(R.id.room_id);
+        roomFlag=findViewById(R.id.room_flag);
+        ViewRoundUtils.clipViewCornerByDp(roomFlag, 10);
+        roomId.setText("ID:"+MyApplication.getApplication().getSelfProfile().getStream_id());
+
+
         mControlView = findViewById(R.id.control_view);
         mControlView.setIsHost(true);
         mControlView.setOnControlListener(new BottomControlView.OnControlListener() {
@@ -345,9 +364,27 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
 
             @Override
             public void onCloseClick() {
-                // 点击了关闭按钮，关闭直播
-                mPresenter.pushStop();
-                finish();
+                MyAlertDialog myAlertDialog = new MyAlertDialog(getContext()).builder()
+                        .setTitle("警告")
+                        .setMsg("您确定要退出直播吗？")
+                        .setPositiveButton("确认", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                // 点击了关闭按钮，关闭直播
+                                mPresenter.pushStop();
+                                quitLive();
+                                heartTimer.cancel();
+                                heartBeatTimer.cancel();
+                                finish();
+                            }
+                        }).setNegativeButton("取消", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                //不作操作
+                            }
+                        });
+                myAlertDialog.show();
+
             }
 
             @Override
@@ -430,15 +467,17 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         //商品列表
         mGoodsListView = findViewById(R.id.goods_view_list);
         mGoodsListView.setIsHost(true);
-        mGoodsListView.setOnControlListener(new GoodsListView.OnGoodsListener() {
+        mGoodsListView.setOnGoodsListener(new GoodsListView.OnGoodsListener() {
             @Override
             public void onCommonClick(int i, ArrayList<GoodsInfo> mGoodsInfos) {
-                Toast.makeText(getContext(), mGoodsInfos.get(i).getGoods_id() + "", Toast.LENGTH_SHORT).show();
+                //主播端不处理
             }
 
             @Override
             public void onHostClick(int i, ArrayList<GoodsInfo> mGoodsInfos) {
                 Toast.makeText(getContext(), mGoodsInfos.get(i).getGoods_id() + "", Toast.LENGTH_SHORT).show();
+                sendSelectedGoodsMsg(mGoodsInfos.get(i));
+                goodsInfo=mGoodsInfos.get(i);
                 mGoodsListView.setVisibility(View.INVISIBLE);
             }
         });
@@ -462,6 +501,8 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         //直播购物界面
 
         goodView = findViewById(R.id.goods_view_self);
+        goodView.setShopVis();
+        ViewRoundUtils.clipViewCornerByDp(goodView, 10);
 
 
         GetGoodsInfoRequest getGoodsInfoRequest = new GetGoodsInfoRequest();
@@ -490,6 +531,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
                 goodView.setGoodAvatar(urlGet + goodsList.get(0).getPhoto_path());
                 goodView.setGoodName(goodsList.get(0).getName());
                 goodView.setGoodPrice(goodsList.get(0).getPrice());
+                goodsInfo=goodsList.get(0);
 //                goodView.setOnGoodListener(new GoodView.OnGoodListener() {
 //                    @Override
 //                    public void onGoodClick() {
@@ -566,10 +608,11 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
             boolean isVoiceOn = hostControlState.isVoiceOn();
             if (isVoiceOn) {
                 //静音
-                audioManager.setStreamMute(AudioManager.STREAM_MUSIC, true);
+//                audioManager.setStreamMute(AudioManager.STREAM_MUSIC, true);
+                mPresenter.audioStart();
                 hostControlState.setVoiceOn(false);
             } else {
-                audioManager.setStreamMute(AudioManager.STREAM_MUSIC, false);
+                mPresenter.audioStop();
                 hostControlState.setVoiceOn(true);
             }
         }
@@ -623,14 +666,62 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
 
     }
 
-    private void quitLive() {
+    //增加选择商品消息
+    private void sendSelectedGoodsMsg(GoodsInfo goodsInfoOfMsg){
+        ILVCustomCmd customCmd = new ILVCustomCmd();
+        customCmd.setType(ILVText.ILVTextType.eGroupMsg);
+        customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_SELECTED_GOODS);
+        customCmd.setStreamId(streamId);
+        customCmd.setGoodsInfo(goodsInfoOfMsg);
+        byte[] customData = GsonInstance.toJson(customCmd).getBytes();
+        V2TIMManager.getInstance().sendGroupCustomMessage(customData, streamId, V2TIMMessage.V2TIM_PRIORITY_NORMAL, new V2TIMValueCallback<V2TIMMessage>() {
+            @Override
+            public void onError(int code, String desc) {
+                Toast.makeText(getContext(), "发送讲解商品消息失败:" + desc, Toast.LENGTH_SHORT).show();
 
+            }
+
+            @Override
+            public void onSuccess(V2TIMMessage v2TIMMessage) {
+                Toast.makeText(getContext(), "发送讲解商品消息成功,已经切换为您选择的直播商品！", Toast.LENGTH_SHORT).show();
+                updateGoodsView(goodsInfoOfMsg);
+            }
+        });
+    }
+
+    //用户新进入
+    private void sendC2CMsg(GoodsInfo goodsInfoOfMsg,UserInfo userInfo){
+        ILVCustomCmd customCmd = new ILVCustomCmd();
+        customCmd.setType(ILVText.ILVTextType.eC2CMsg);
+        customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_SELECTED_GOODS);
+        customCmd.setStreamId(streamId);
+        customCmd.setGoodsInfo(goodsInfoOfMsg);
+        byte[] customData = GsonInstance.toJson(customCmd).getBytes();
+        V2TIMManager.getInstance().sendC2CCustomMessage(customData, userInfo.user_id+"", new V2TIMValueCallback<V2TIMMessage>() {
+            @Override
+            public void onError(int code, String desc) {
+                Toast.makeText(getContext(), "发送讲解商品消息失败:" + desc, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onSuccess(V2TIMMessage v2TIMMessage) {
+                Toast.makeText(PushActivity.this, "发送讲解商品消息成功!", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void updateGoodsView(GoodsInfo goodsInfo) {
+        goodView.setGoodAvatar(urlGet+goodsInfo.getPhoto_path());
+        goodView.setGoodPrice(goodsInfo.getPrice());
+        goodView.setGoodName(goodsInfo.getName());
+    }
+
+    private void quitLive() {
         ILVCustomCmd customCmd = new ILVCustomCmd();
         customCmd.setType(ILVText.ILVTextType.eGroupMsg);
         customCmd.setCmd(ILVLiveConstants.ILVLIVE_CMD_LEAVE);
         customCmd.setStreamId(streamId);
         customCmd.setUserProfile(appUserProfile);
-
 
         byte[] customData = GsonInstance.toJson(customCmd).getBytes();
 
@@ -671,13 +762,34 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
     }
 
     @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {
+            MyAlertDialog myAlertDialog = new MyAlertDialog(this).builder()
+                    .setTitle("警告")
+                    .setMsg("您确定要退出直播吗？")
+                    .setPositiveButton("确认", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            quitLive();
+                            heartTimer.cancel();
+                            heartBeatTimer.cancel();
+                            finish();
+                        }
+                    }).setNegativeButton("取消", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            //不作操作
+                        }
+                    });
+            myAlertDialog.show();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
-        quitLive();
-        heartTimer.cancel();
-        heartBeatTimer.cancel();
-
-
     }
 
     @Override
