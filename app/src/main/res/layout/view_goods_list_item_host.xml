@@ -26,7 +26,7 @@
             <TextView
                 android:id="@+id/goods_price_item"
                 android:layout_width="@dimen/dp_210"
-                android:layout_height="@dimen/dp_80"/>
+                android:layout_height="@dimen/dp_60"/>
 
             <Button
                 android:id="@+id/goods_selected_item"

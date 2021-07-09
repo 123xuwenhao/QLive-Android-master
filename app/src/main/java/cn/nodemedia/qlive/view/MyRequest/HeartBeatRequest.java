@@ -2,10 +2,11 @@ package cn.nodemedia.qlive.view.MyRequest;
 
 import java.io.IOException;
 
+import cn.nodemedia.qlive.entity.ResponseObj;
 import cn.nodemedia.qlive.utils.BaseRequest;
 
 public class HeartBeatRequest extends BaseRequest {
-    private static final String Action = "http://47.99.171.180:8080/zhibo/servlet/RoomServlet?action=heartBeat";
+    private static final String Action = "http://47.99.171.180:8080/zhibo/servlet/RoomServlet?action=heartBeat&";
 
     private static final String RequestParamKey_StreamId = "streamId";
     private static final String RequestParamKey_UserId = "userId";
@@ -39,6 +40,17 @@ public class HeartBeatRequest extends BaseRequest {
 
     @Override
     protected void onResponseSuccess(String body) {
-
+//        ResponseObj responseObject = gson.fromJson(body, ResponseObj.class);
+//        if (responseObject == null) {
+//            sendFailMsg(-101, "数据格式错误");
+//            return;
+//        }
+//
+//
+//        if (responseObject.code.equals(ResponseObj.CODE_SUC)) {
+//            sendSuccMsg("");
+//        } else if (responseObject.code.equals(ResponseObj.CODE_FAIL)) {
+//            sendFailMsg(Integer.parseInt(responseObject.errCode), responseObject.errMsg);
+//        }
     }
 }

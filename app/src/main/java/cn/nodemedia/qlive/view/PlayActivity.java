@@ -169,37 +169,68 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
         getLiveRoomRequest.request(param);
     }
 
+
+
     private void joinRoom() {
         if (hostId < 0 || TextUtils.isEmpty(streamId)) {
             return;
         }
-
-        //加入房间
-        V2TIMManager.getInstance().joinGroup(streamId, "AVChatroom", new V2TIMCallback() {
+        GetLiveRoomRequest getLiveRoomRequest = new GetLiveRoomRequest();
+        GetLiveRoomRequest.getLiveRoomParam liveRoomParam = new GetLiveRoomRequest.getLiveRoomParam();
+        liveRoomParam.streamId = streamId;
+        getLiveRoomRequest.setOnResultListener(new BaseRequest.OnResultListener<RoomInfo>() {
             @Override
-            public void onError(int code, String desc) {
-                Toast.makeText(PlayActivity.this, "直播已结束", Toast.LENGTH_SHORT).show();
-                finish();
+            public void onFail(int code, String msg) {
+                Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
+                MyAlertDialog myAlertDialog = new MyAlertDialog(getContext()).builder()
+                        .setTitle("提醒")
+                        .setMsg("主播已经下播了，等下次开播再来吧！")
+                        .setPositiveButton("嗯呐", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                heartTimer.cancel();
+                                heartBeatTimer.cancel();
+                                finish();
+                            }
+                        }).setCanceledOnTouchOutside(false);
+                myAlertDialog.show();
+
             }
 
             @Override
-            public void onSuccess() {
-                //更新用户
-                joinRoomRequst();
-                //初始化部件
-                assignIMViews();
-                //开始心形动画
-                startHeartAnim();
-                //同时发送进入直播的消息。
-                sendEnterRoomMsg();
-                //显示主播的头像
-                updateTitleView();
-                //开始心跳包
-                startHeartBeat();
-                //添加消息监听器
-                addMsgListener();
+            public void onSuccess(RoomInfo roomInfo) {
+                //加入房间
+                V2TIMManager.getInstance().joinGroup(streamId, "AVChatroom", new V2TIMCallback() {
+                    @Override
+                    public void onError(int code, String desc) {
+                        Toast.makeText(PlayActivity.this, "直播已结束", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+
+                    @Override
+                    public void onSuccess() {
+                        //更新用户
+                        joinRoomRequst();
+                        //初始化部件
+                        assignIMViews();
+                        //开始心形动画
+                        startHeartAnim();
+                        //同时发送进入直播的消息。
+                        sendEnterRoomMsg();
+                        //显示主播的头像
+                        updateTitleView();
+                        //开始心跳包
+                        startHeartBeat();
+                        //添加消息监听器
+                        addMsgListener();
+                    }
+                });
             }
         });
+        getLiveRoomRequest.request(liveRoomParam);
+
+
+
     }
 
     private void joinRoomRequst() {
@@ -253,7 +284,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
                                         heartBeatTimer.cancel();
                                         finish();
                                     }
-                                });
+                                }).setCanceledOnTouchOutside(false);
                         myAlertDialog.show();
                     } else {
                         //观众退出直播
@@ -610,6 +641,7 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
                     public void onGoodClick() {
                         //TODO:跳转到购物界面
                         Toast.makeText(getContext(), "跳转到购物界面", Toast.LENGTH_SHORT).show();
+
                     }
                 });
             }
@@ -812,5 +844,17 @@ public class PlayActivity extends BaseActivity<PlayContract.Presenter> implement
     public NodePlayerView getNodePlayerView() {
         return playSurface;
     }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        addMsgListener();
+    }
+
 
 }

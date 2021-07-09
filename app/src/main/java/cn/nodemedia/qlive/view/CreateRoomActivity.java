@@ -35,6 +35,7 @@ import cn.nodemedia.qlive.utils.PicChooseHelper;
 import cn.nodemedia.qlive.utils.TCConstants;
 import cn.nodemedia.qlive.utils.TCUtils;
 import cn.nodemedia.qlive.view.MyRequest.CreateRoomRequest;
+import cn.nodemedia.qlive.view.MyRequest.InsertSelectedGoodsRequest;
 
 
 public class CreateRoomActivity extends AppCompatActivity implements View.OnClickListener {
@@ -139,6 +140,26 @@ public class CreateRoomActivity extends AppCompatActivity implements View.OnClic
                 intentOut.putIntegerArrayListExtra("selectedGoods",goods);
                 startActivity(intentOut);
                 finish();
+                updateSelectedGoods("yb"+data.user_id);
+            }
+        });
+        request.request(param);
+    }
+
+    private void updateSelectedGoods(String streamId) {
+        //先去请求服务器
+        InsertSelectedGoodsRequest request = new InsertSelectedGoodsRequest();
+        InsertSelectedGoodsRequest.insertSelectedGoodsParam param = new InsertSelectedGoodsRequest.insertSelectedGoodsParam();
+        param.goodsId = goods.toString();
+        param.streamId=streamId;
+        request.setOnResultListener(new BaseRequest.OnResultListener() {
+            @Override
+            public void onFail(int code, String msg) {
+
+            }
+
+            @Override
+            public void onSuccess(Object object) {
 
             }
         });

@@ -64,9 +64,11 @@ import cn.nodemedia.qlive.utils.view.SizeChangeRelativeLayout;
 import cn.nodemedia.qlive.utils.view.TitleView;
 import cn.nodemedia.qlive.utils.view.ViewRoundUtils;
 import cn.nodemedia.qlive.utils.view.VipEnterView;
+import cn.nodemedia.qlive.view.MyRequest.DeleteSelectedGoodsRequest;
 import cn.nodemedia.qlive.view.MyRequest.GetGoodsInfoRequest;
 import cn.nodemedia.qlive.view.MyRequest.GetLiveRoomRequest;
 import cn.nodemedia.qlive.view.MyRequest.HeartBeatRequest;
+import cn.nodemedia.qlive.view.MyRequest.InsertSelectedGoodsRequest;
 import cn.nodemedia.qlive.view.MyRequest.QuitRoomRequest;
 import cn.nodemedia.qlive.widget.HintDialog;
 import tyrantgit.widget.HeartLayout;
@@ -76,8 +78,8 @@ import xyz.tanwb.airship.view.BaseActivity;
 
 public class PushActivity extends BaseActivity<PushContract.Presenter> implements PushContract.View {
 
-    private static  int FRONT_CAMERA = 0;
-    private static  int BACK_CAMERA = 1;
+    private static final int FRONT_CAMERA = 0;
+    private static final int BACK_CAMERA = 1;
     private NodeCameraView pushSurface;
     SharedPreferences spf;
     int userId;
@@ -89,6 +91,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
     String goodsIds;
     ArrayList<GoodsInfo> goodsListValue = new ArrayList<>();
     private static final String urlGet = "http://47.99.171.180:8082/streaming/";
+    public static final int FLAG_HOMEKEY_DISPATCHED = 0x80000000;
 
     private SizeChangeRelativeLayout mSizeChangeLayout;
     private TitleView mTitleView;
@@ -105,9 +108,9 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
     private TextView roomId;
     private LinearLayout roomFlag;
 
-    private  Timer heartBeatTimer = new Timer();
-    private  Timer heartTimer = new Timer();
-    private  Random heartRandom = new Random();
+    private final Timer heartBeatTimer = new Timer();
+    private final Timer heartTimer = new Timer();
+    private final Random heartRandom = new Random();
     private HeartLayout heartLayout;
     private GiftRepeatView giftRepeatView;
     private GiftFullView giftFullView;
@@ -116,12 +119,12 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
 
     private String UserSig;
     private int status;
-    private static  Gson GsonInstance = new Gson();
+    private static final Gson GsonInstance = new Gson();
 
 
     private HeartBeatRequest mHeartBeatRequest = null;
 
-    private boolean isFlashLightOn = false;
+    private final boolean isFlashLightOn = false;
 
     UserInfo appUserProfile = MyApplication.getApplication().getSelfProfile();
 
@@ -236,6 +239,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         heartBeatTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
+                Log.e("-----------发送一次心跳-----------------------");
                 //发送心跳包
                 if (mHeartBeatRequest == null) {
                     mHeartBeatRequest = new HeartBeatRequest();
@@ -244,6 +248,18 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
                 HeartBeatRequest.getHeartBeatParam heartBeatParam=new HeartBeatRequest.getHeartBeatParam();
                 heartBeatParam.userId=userId;
                 heartBeatParam.streamId=streamId;
+//                mHeartBeatRequest.setOnResultListener(new BaseRequest.OnResultListener<String>() {
+//                    @Override
+//                    public void onFail(int code, String msg) {
+//                        Log.e("HeartBeatRequest",msg,null);
+//                    }
+//
+//                    @Override
+//                    public void onSuccess(String  suc) {
+//                        Log.e("HeartBeatRequest",suc,null);
+//
+//                    }
+//                });
                 mHeartBeatRequest.request(heartBeatParam);
             }
         }, 0, 4000); //4秒钟 。服务器是10秒钟去检测一次。
@@ -256,6 +272,14 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
             @Override
             public void onError(int code, String desc) {
                 Toast.makeText(PushActivity.this,"错误代码："+code+",创建房间失败："+desc,Toast.LENGTH_SHORT).show();
+                Log.e("createGroup",code+desc,null);
+                if(code==10025){
+                    assignIMViews();
+                    addMsgListener();
+                    startHeartBeat();
+                    startHeartAnim();
+                    getSelectedGoods();
+                }
             }
 
             @Override
@@ -375,6 +399,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
                                 quitLive();
                                 heartTimer.cancel();
                                 heartBeatTimer.cancel();
+                                deleteSelectedGoods();
                                 finish();
                             }
                         }).setNegativeButton("取消", new View.OnClickListener() {
@@ -544,6 +569,24 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         getGoodsInfoRequest.request(goodsParam);
     }
 
+    private void deleteSelectedGoods() {
+        //先去请求服务器
+        DeleteSelectedGoodsRequest request = new DeleteSelectedGoodsRequest();
+        DeleteSelectedGoodsRequest.deleteSelectedGoodsParam param = new DeleteSelectedGoodsRequest.deleteSelectedGoodsParam();
+        param.streamId=streamId;
+        request.setOnResultListener(new BaseRequest.OnResultListener() {
+            @Override
+            public void onFail(int code, String msg) {
+
+            }
+
+            @Override
+            public void onSuccess(Object object) {
+
+            }
+        });
+        request.request(param);
+    }
 
 
     /**
@@ -566,14 +609,7 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-    }
-
-
-    private  HostControlDialog.OnControlClickListener controlClickListener = new HostControlDialog.OnControlClickListener() {
+    private final HostControlDialog.OnControlClickListener controlClickListener = new HostControlDialog.OnControlClickListener() {
         @Override
         public void onBeautyClick() {
             //点击美颜
@@ -609,10 +645,10 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
             if (isVoiceOn) {
                 //静音
 //                audioManager.setStreamMute(AudioManager.STREAM_MUSIC, true);
-                mPresenter.audioStart();
+                mPresenter.audioStop();
                 hostControlState.setVoiceOn(false);
             } else {
-                mPresenter.audioStop();
+                mPresenter.audioStart();
                 hostControlState.setVoiceOn(true);
             }
         }
@@ -631,11 +667,6 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
         }
     };
 
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-    }
 
     public void logout() {
         V2TIMManager.getInstance().dismissGroup(streamId, new V2TIMCallback() {
@@ -773,12 +804,26 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
                             quitLive();
                             heartTimer.cancel();
                             heartBeatTimer.cancel();
+                            deleteSelectedGoods();
                             finish();
                         }
                     }).setNegativeButton("取消", new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
                             //不作操作
+                        }
+                    });
+            myAlertDialog.show();
+            return true;
+        }
+        if (KeyEvent.KEYCODE_HOME == keyCode) {
+            //点击Home键所执行的代码
+            MyAlertDialog myAlertDialog = new MyAlertDialog(this).builder()
+                    .setTitle("警告")
+                    .setMsg("为了您的隐私安全，直播过程中不能将程序置于后台！")
+                    .setPositiveButton("明白", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
                         }
                     });
             myAlertDialog.show();
@@ -805,4 +850,30 @@ public class PushActivity extends BaseActivity<PushContract.Presenter> implement
     @Override
     public void flashChange(boolean onOrOff) {
     }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.e("______stop___________");
+    }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.e("______start___________");
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        Log.e("______restart___________");
+        addMsgListener();
+    }
+
 }

@@ -3,12 +3,14 @@ package cn.nodemedia.qlive.utils.view;
 import android.content.Context;
 import android.graphics.Color;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import cn.nodemedia.qlive.R;
 import cn.nodemedia.qlive.entity.Constants;
@@ -64,21 +66,27 @@ public class ChatView extends LinearLayout {
         mChatContent.setHint("和大家聊点什么吧");
         mSend.setOnClickListener(view -> {
             sendChatMsg();
+            mChatContent.setText("");
         });
     }
 
     private void sendChatMsg() {
         if (mOnChatSendListener != null) {
-            ILVCustomCmd customCmd = new ILVCustomCmd();
-            customCmd.setType(ILVText.ILVTextType.eGroupMsg);
-            boolean isDanmu = mSwitchChatType.isChecked();
-            if (isDanmu) {
-                customCmd.setCmd(Constants.CMD_CHAT_MSG_DANMU);
-            } else {
-                customCmd.setCmd(Constants.CMD_CHAT_MSG_LIST);
+            if(mChatContent.getText().toString().equals("")){
+                Toast.makeText(getContext(),"发送内容不能为空",Toast.LENGTH_SHORT).show();
+            }else{
+                ILVCustomCmd customCmd = new ILVCustomCmd();
+                customCmd.setType(ILVText.ILVTextType.eGroupMsg);
+                boolean isDanmu = mSwitchChatType.isChecked();
+                if (isDanmu) {
+                    customCmd.setCmd(Constants.CMD_CHAT_MSG_DANMU);
+                } else {
+                    customCmd.setCmd(Constants.CMD_CHAT_MSG_LIST);
+                }
+                customCmd.setParam(mChatContent.getText().toString());
+                mOnChatSendListener.onChatSend(customCmd);//设置消息内容
             }
-            customCmd.setParam(mChatContent.getText().toString());
-            mOnChatSendListener.onChatSend(customCmd);//设置消息内容
+
         }
 
     }

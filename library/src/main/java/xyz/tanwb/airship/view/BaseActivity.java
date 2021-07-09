@@ -47,6 +47,8 @@ public abstract class BaseActivity<T extends BasePresenter> extends RxAppCompatA
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //在setContentView之前添加,未添加的话home键监听无效，设置窗体属性
+        this.getWindow().setFlags(0x80000000, 0x80000000);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         this.setContentView(getLayoutId());
         if (hasLightMode()) {

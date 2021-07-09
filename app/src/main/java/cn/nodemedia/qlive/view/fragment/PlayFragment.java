@@ -70,7 +70,8 @@ public class PlayFragment extends Fragment {
         play_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                checkLiveRoom(intent);
+//                checkLiveRoom(intent);
+                startActivity(intent);
             }
         });
         return view;
